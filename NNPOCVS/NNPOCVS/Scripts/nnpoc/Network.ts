@@ -11,8 +11,8 @@
             //return value;
         }
 
-        random(): number {
-            return (Math.random() * 2 - 1) * 8;
+        random(): number {            
+            return (Math.random() * 2 - 1) * 4;
         }
 
         populate(nInputs: number, hiddens: number[], output: number): void {

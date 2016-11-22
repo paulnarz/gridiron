@@ -6,28 +6,26 @@
             var points = Main.createPoints(-1, 1, Math.pow(2, -4));
 
             var network = new Network();
-            network.populate(1, [ 2 ], 1);
-            network.layers[1].neurons[0].weights            
+            network.populate(2, [ 4, 4 ], 1);                     
 
-            network.layers[1].neurons[0].weights[0] = 1;
-            network.layers[1].neurons[0].weights[1] = 0;
+            //network.layers[1].neurons[0].weights[0] = 3;
+            //network.layers[1].neurons[0].weights[1] = 0;
 
-            network.layers[1].neurons[1].weights[0] = 0;
-            network.layers[1].neurons[1].weights[1] = 0;
+            //network.layers[1].neurons[1].weights[0] = -1;
+            //network.layers[1].neurons[1].weights[1] = 1;
 
-            network.layers[2].neurons[0].weights[0] = 1;
-            network.layers[2].neurons[0].weights[1] = 1;
-            network.layers[2].neurons[0].weights[2] = 0;
+            //network.layers[2].neurons[0].weights[0] = 1;
+            //network.layers[2].neurons[0].weights[1] = -1;
+            //network.layers[2].neurons[0].weights[2] = 0;
             
-            console.log(network.layers[1].neurons[0].weights);
-            console.log(network.layers[1].neurons[1].weights);
-            console.log(network.layers[2].neurons[0].weights);            
+            //console.log(network.layers[1].neurons[0].weights);
+            //console.log(network.layers[1].neurons[1].weights);
+            //console.log(network.layers[2].neurons[0].weights);            
 
             var data = [];
             var out = "";
-            points.forEach(p => {
-                //var result = network.calculate([p.x, p.y, p.x * p.y, p.x * p.x, p.y * p.y]);
-                var result = network.calculate([p.x ]);
+            points.forEach(p => {                
+                var result = network.calculate([p.x, p.y ]);
                 out += p.x + "\t" + p.y + "\t" + result[0] + "\n";
                 var z = result[0];
                 //z = z > 0.5 ? 0.8 : 0.2;
@@ -40,8 +38,8 @@
             })
             //console.log(out);
 
-            network.calculate([1]);
-            console.log(network);
+            //network.calculate([1]);
+            //console.log(network);
 
             Main.plot(data);
         }
