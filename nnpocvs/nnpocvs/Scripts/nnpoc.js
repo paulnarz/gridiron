@@ -12,7 +12,7 @@ var nnpoc;
             }
         };
         return Layer;
-    })();
+    }());
     nnpoc.Layer = Layer;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
@@ -91,7 +91,7 @@ var nnpoc;
             return points;
         };
         return Main;
-    })();
+    }());
     window.onload = Main.main;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
@@ -158,7 +158,7 @@ var nnpoc;
             return out;
         };
         return Network;
-    })();
+    }());
     nnpoc.Network = Network;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
@@ -175,7 +175,7 @@ var nnpoc;
             }
         };
         return Neuron;
-    })();
+    }());
     nnpoc.Neuron = Neuron;
 })(nnpoc || (nnpoc = {}));
 //# sourceMappingURL=nnpoc.js.map
