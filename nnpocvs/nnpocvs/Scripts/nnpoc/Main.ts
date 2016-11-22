@@ -6,7 +6,7 @@
             var points = Main.createPoints(-1, 1, Math.pow(2, -4));
 
             var network = new Network();
-            network.populate(2, [ 4, 4 ], 1);                     
+            network.populate(2, [4, 4], 1);
 
             //network.layers[1].neurons[0].weights[0] = 3;
             //network.layers[1].neurons[0].weights[1] = 0;
@@ -17,15 +17,15 @@
             //network.layers[2].neurons[0].weights[0] = 1;
             //network.layers[2].neurons[0].weights[1] = -1;
             //network.layers[2].neurons[0].weights[2] = 0;
-            
+
             //console.log(network.layers[1].neurons[0].weights);
             //console.log(network.layers[1].neurons[1].weights);
             //console.log(network.layers[2].neurons[0].weights);            
 
             var data = [];
             var out = "";
-            points.forEach(p => {                
-                var result = network.calculate([p.x, p.y ]);
+            points.forEach(p => {
+                var result = network.calculate([p.x, p.y]);
                 out += p.x + "\t" + p.y + "\t" + result[0] + "\n";
                 var z = result[0];
                 //z = z > 0.5 ? 0.8 : 0.2;
@@ -45,7 +45,7 @@
         }
 
         static plot(data: any[]) {
-            
+
             var options = {
                 width: '100%',
                 height: '600px',
@@ -65,7 +65,7 @@
 
             graph = document.getElementById('graph');
             options.cameraPosition = undefined;
-            if (graph)      
+            if (graph)
                 new vis.Graph3d(graph, data, options);
 
             graph = document.getElementById('graphTop');
@@ -77,7 +77,7 @@
             options.cameraPosition = { horizontal: 0.0, vertical: 0 };
             options.showPerspective = false;
             if (graph)
-                new vis.Graph3d(graph, data, options);                        
+                new vis.Graph3d(graph, data, options);
         }
 
         static createPoints(min: number, max: number, step: number): { x: number, y: number }[] {
@@ -93,5 +93,5 @@
         }
     }
 
-    window.onload = Main.main;
+    //window.onload = Main.main;
 }

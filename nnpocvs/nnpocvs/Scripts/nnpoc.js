@@ -92,19 +92,14 @@ var nnpoc;
         };
         return Main;
     }());
-    window.onload = Main.main;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
 (function (nnpoc) {
     var Network = (function () {
         function Network() {
         }
-        //activation(value: number): number {
-        //    return (1 / (1 + Math.exp(-value)));
-        //}
         Network.prototype.activation = function (value) {
-            return 2 / (1 + Math.exp(-2 * value)) - 1;
-            //return value;
+            return (1 / (1 + Math.exp(-value)));
         };
         Network.prototype.random = function () {
             return (Math.random() * 2 - 1) * 4;
@@ -178,4 +173,78 @@ var nnpoc;
     }());
     nnpoc.Neuron = Neuron;
 })(nnpoc || (nnpoc = {}));
+var nnviz;
+(function (nnviz) {
+    "use strict";
+    var m = angular.module("nnviz", []);
+})(nnviz || (nnviz = {}));
+var nnviz;
+(function (nnviz) {
+    var PlotController = (function () {
+        function PlotController() {
+            this.PlotOtions = {
+                style: 'surface',
+                zMin: 0,
+                zMax: 1,
+            };
+            this.NPlotOtions = {
+                style: 'surface',
+                zMin: 0,
+                zMax: 1,
+                showPerspective: false,
+                cameraPosition: { horizontal: 0.0, vertical: 3.14 }
+            };
+            this.Network = new nnpoc.Network();
+            this.Network.populate(2, [2], 1);
+            this.createPoints(-1, 1, Math.pow(2, -3));
+            this.calcData();
+            this.Graph = new vis.Graph3d(document.getElementById('graph'), this.Data, this.PlotOtions);
+            this.NGraph = new vis.Graph3d(document.getElementById('ngraph'), this.NData, this.NPlotOtions);
+        }
+        PlotController.prototype.randomize = function () {
+            this.Network.populate(2, [2], 1);
+            this.calcData();
+            this.redraw();
+        };
+        PlotController.prototype.createPoints = function (min, max, step) {
+            this.Points = [];
+            for (var x = min; x <= max; x += step) {
+                for (var y = min; y <= max; y += step) {
+                    this.Points.push({ x: x, y: y });
+                }
+            }
+        };
+        PlotController.prototype.calcData = function () {
+            var _this = this;
+            this.Data = [];
+            this.NData = [];
+            this.Points.forEach(function (p) {
+                var result = _this.Network.calculate([
+                    p.x,
+                    p.y
+                ]);
+                var z = result[0];
+                _this.Data.push({
+                    x: p.x,
+                    y: p.y,
+                    z: z
+                });
+                _this.NData.push({
+                    x: p.x,
+                    y: p.y,
+                    z: z > 0.5 ? 1 : 0
+                });
+            });
+        };
+        PlotController.prototype.redraw = function () {
+            this.Graph.setData(this.Data);
+            this.NGraph.setData(this.NData);
+        };
+        return PlotController;
+    }());
+    nnviz.PlotController = PlotController;
+    angular
+        .module("nnviz")
+        .controller("PlotController", PlotController);
+})(nnviz || (nnviz = {}));
 //# sourceMappingURL=nnpoc.js.map

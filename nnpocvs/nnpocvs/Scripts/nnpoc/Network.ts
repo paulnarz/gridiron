@@ -2,27 +2,22 @@
     export class Network {
         layers: Layer[];
 
-        //activation(value: number): number {
-        //    return (1 / (1 + Math.exp(-value)));
-        //}
-
         activation(value: number): number {
-            return 2 / (1 + Math.exp(-2 * value)) - 1;
-            //return value;
+            return (1 / (1 + Math.exp(-value)));
         }
 
-        random(): number {            
+        random(): number {
             return (Math.random() * 2 - 1) * 4;
         }
 
         populate(nInputs: number, hiddens: number[], output: number): void {
             this.layers = [];
-            
+
             var layer = new Layer();
             layer.populate(nInputs, 0, this.random);
             layer.neurons.push(new Neuron()); //add bias
             this.layers.push(layer);
-            
+
 
             if (hiddens) {
                 for (var i = 0; i < hiddens.length; i++) {
@@ -34,8 +29,8 @@
             }
 
             layer = new Layer();
-            layer.populate(output, this.layers[this.layers.length - 1].neurons.length, this.random);            
-            this.layers.push(layer);            
+            layer.populate(output, this.layers[this.layers.length - 1].neurons.length, this.random);
+            this.layers.push(layer);
         }
 
         calculate(inputs: number[]): number[] {
@@ -43,7 +38,7 @@
 
             for (let i = 0; i < inputs.length; i++) {
                 layer.neurons[i].value = inputs[i];
-            }            
+            }
 
             layer.neurons[layer.neurons.length - 1].value = 1;
 
@@ -63,8 +58,8 @@
                     }
                     else {
                         neuron.value = 1;
-                    }                    
-                }                
+                    }
+                }
             }
 
             var out = [];

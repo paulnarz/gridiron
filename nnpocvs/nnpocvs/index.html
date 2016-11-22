@@ -3,12 +3,37 @@
 <head>
     <title>Project GridIron : NN POC</title>
     <meta charset="utf-8" />
+    <link rel="stylesheet" href="Content/bootstrap.min.css">
+    <link rel="stylesheet" href="Contentbootstrap-theme.min.css">
+    <style>
+        [ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
+            display: none !important;
+        }
+    </style>
 </head>
-<body>
-    <div id="graph"></div>
-    <!--<div id="graphTop"></div>-->
-    <!--<div id="graphSide"></div>-->
+<body ng-app="nnviz">
+    <div class="container">
+        <div ng-controller="PlotController as vm" ng-cloak>
+            <div class="row">
+                <div class="col-sm-6">
+                    <div id="graph"></div>
+                </div>
+                <div class="col-sm-6">
+                    <div id="ngraph"></div>
+                </div>
+            </div>
+            <div class="row">
+                <button type="button" class="btn btn-default" ng-click="vm.randomize()">
+                    Randomize
+                </button>
+            </div>
+            <div class="row">
+                <pre>{{vm.Network | json }}</pre>
+            </div>
+        </div>
+    </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.17.0/vis.min.js"></script>
+    <script src="Scripts/angular.min.js"></script>
     <script src="Scripts/nnpoc.js"></script>
 </body>
 </html>
