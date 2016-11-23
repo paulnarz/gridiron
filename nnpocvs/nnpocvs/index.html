@@ -4,7 +4,7 @@
     <title>Project GridIron : NN POC</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="Content/bootstrap.min.css">
-    <link rel="stylesheet" href="Contentbootstrap-theme.min.css">
+    <link rel="stylesheet" href="Content/bootstrap-theme.min.css">
     <style>
         [ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
             display: none !important;
@@ -16,10 +16,10 @@
         <div ng-controller="PlotController as vm" ng-cloak>
             <div class="row">
                 <div class="col-sm-6">
-                    <div id="graph"></div>
+                    <div id="graph3d"></div>
                 </div>
                 <div class="col-sm-6">
-                    <div id="ngraph"></div>
+                    <div id="graph2dNormal"></div>
                 </div>
             </div>
             <div class="row">
@@ -28,6 +28,11 @@
                 </button>
             </div>
             <div class="row">
+                <div class="col-sm-12">
+                    <div id="graphNetwork" style="height: 600px;"></div>
+                </div>                
+            </div>
+            <div class="row">                
                 <pre>{{vm.Network | json }}</pre>
             </div>
         </div>
