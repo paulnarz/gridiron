@@ -1,15 +1,17 @@
 ﻿module nnpoc {
     export class Neuron {
         value: number;
-        weights: number[];
+        edges: Edge[];
 
         populate(nInputs: number, random: () => number): void {
             if (!nInputs)
                 return;
 
-            this.weights = [];
+            this.edges = [];
             for (var i = 0; i < nInputs; i++) {
-                this.weights.push(random());
+                var edge = new Edge();
+                edge.weight = random();
+                this.edges.push(edge);
             }
         }
     }

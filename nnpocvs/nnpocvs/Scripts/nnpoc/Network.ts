@@ -7,7 +7,7 @@
         }
 
         random(): number {
-            return (Math.random() * 2 - 1) * 4;
+            return Math.round(((Math.random() * 2 - 1) * 4) * 10) / 10;
         }
 
         populate(nInputs: number, hiddens: number[], output: number): void {
@@ -49,10 +49,10 @@
                 for (let j = 0; j < layer.neurons.length; j++) {
                     var neuron = layer.neurons[j];
 
-                    if (neuron.weights) {
+                    if (neuron.edges) {
                         var sum = 0;
                         for (let k = 0; k < prevLayer.neurons.length; k++) {
-                            sum += prevLayer.neurons[k].value * neuron.weights[k];
+                            sum += prevLayer.neurons[k].value * neuron.edges[k].weight;
                         }
                         neuron.value = this.activation(sum);
                     }

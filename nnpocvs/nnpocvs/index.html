@@ -26,6 +26,7 @@
                 <button type="button" class="btn btn-default" ng-click="vm.randomize()">
                     Randomize
                 </button>
+                <input type="number" step="0.1" ng-disabled="!vm.SelectedEdge" ng-model="vm.SelectedEdge.weight" ng-change="vm.onEdgeChange()" />
             </div>
             <div class="row">
                 <div class="col-sm-12">

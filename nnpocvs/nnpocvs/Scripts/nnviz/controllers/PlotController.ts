@@ -4,6 +4,7 @@
     export class PlotController {
         Network: nnpoc.Network;
         Points: { x: number, y: number }[];
+        SelectedEdge: nnpoc.Edge;
 
         Graph3d: any;
         Graph3dData: { x: number, y: number, z: number }[];
@@ -26,6 +27,9 @@
         GraphNetwork: any;
         GraphNetworkData: any;
         GraphNetworkOptions: any = {
+            physics: {
+                enabled: false
+            },
             layout: {
                 hierarchical: {
                     direction: "LR",
@@ -35,6 +39,7 @@
         };
 
         constructor(
+            private $scope: ng.IScope
         ) {
             this.Network = new nnpoc.Network();
             this.createPoints(-1, 1, Math.pow(2, -3));
@@ -54,7 +59,7 @@
         }
 
         randomize(): void {
-            this.Network.populate(2, [2], 1);            
+            this.Network.populate(2, [ 2 ], 1);            
             this.calcData();
             this.redrawPlot();
 
@@ -85,9 +90,7 @@
                     y: p.y,
                     z: z > 0.5 ? 1 : 0
                 });
-            });
-
-            this.redrawNetwork();
+            });            
         }
 
         initGraphs(): void {
@@ -105,7 +108,11 @@
                 document.getElementById('graphNetwork'),
                 this.GraphNetworkData,
                 this.GraphNetworkOptions);
-        }
+
+            this.GraphNetwork.on("select", (params) => {
+                this.onGraphNetworkSelect(params);
+            });            
+        }        
 
         redrawPlot(): void {
             this.Graph3d.setData(this.Graph3dData);
@@ -114,29 +121,28 @@
 
         redrawNetwork(): void {
             var nodes = [];
-            var edges = [];            
-            var nextID = 1;
-            var idLookUp = {};
+            var edges = [];                                   
 
             this.Network.layers.forEach((l, i) => {
                 l.neurons.forEach((n, j) => {
-                    var id = i + "_" + j;
-                    idLookUp[id] = nextID++;
+                    var id = i + "_" + j;                    
 
                     nodes.push({
-                        id: idLookUp[id],
+                        id: id,
                         label: (n.value || 0).toFixed(2),
                         color: this.getValueColor(n.value || 0)                        
                     });
 
-                    if (n.weights) {
-                        n.weights.forEach((w, k) => {
-                            var fromID = i - 1 + "_" + k;
+                    if (n.edges) {
+                        n.edges.forEach((e, k) => {
+                            var fromID = i - 1 + "_" + k;                            
+                            var edgeID = i + "_" + j + "_" + k;
                             edges.push({
-                                from: idLookUp[fromID],
-                                to: idLookUp[id],                                                          
-                                label: w.toFixed(2),
-                                color: this.getWeightColor(w)
+                                id: edgeID,
+                                from: fromID,
+                                to: id,
+                                label: e.weight.toFixed(2),
+                                color: this.getWeightColor(e.weight)
                             });
                         })
                     }
@@ -149,6 +155,29 @@
             };            
 
             this.GraphNetwork.setData(this.GraphNetworkData);
+        }
+
+        onGraphNetworkSelect = (params: any): void => {
+            if (params.edges && params.edges.length == 1) {
+                var edgeID = params.edges[0];
+                var ids = (edgeID as string).split("_");
+                var layerIndex = parseInt(ids[0]);
+                var neuronIndex = parseInt(ids[1]);
+                var edgeIndex = parseInt(ids[2]);
+
+                this.SelectedEdge = this.Network.layers[layerIndex].neurons[neuronIndex].edges[edgeIndex];
+                this.$scope.$apply();
+            }
+            else if (this.SelectedEdge) {
+                this.SelectedEdge = null;
+                this.$scope.$apply();
+            }
+        }
+
+        onEdgeChange(): void {            
+            this.calcData();
+            this.redrawPlot();
+            this.redrawNetwork();
         }
 
         getValueColor(value: number): string {
