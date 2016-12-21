@@ -63,9 +63,9 @@
   </ItemGroup>
   <ItemGroup>
     <TypeScriptCompile Include="Scripts\nnpoc\Layer.ts" />
-    <TypeScriptCompile Include="Scripts\nnpoc\Main.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\Network.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\Edge.ts" />
+    <TypeScriptCompile Include="Scripts\nnpoc\NetworkOptions.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\Neuron.ts" />
     <TypeScriptCompile Include="Scripts\nnviz\app.modules.ts" />
     <TypeScriptCompile Include="Scripts\nnviz\controllers\PlotController.ts" />

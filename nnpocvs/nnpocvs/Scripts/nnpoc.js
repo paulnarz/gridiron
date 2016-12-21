@@ -1,5 +1,14 @@
 var nnpoc;
 (function (nnpoc) {
+    var Edge = (function () {
+        function Edge() {
+        }
+        return Edge;
+    }());
+    nnpoc.Edge = Edge;
+})(nnpoc || (nnpoc = {}));
+var nnpoc;
+(function (nnpoc) {
     var Layer = (function () {
         function Layer() {
         }
@@ -17,84 +26,6 @@ var nnpoc;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
 (function (nnpoc) {
-    var Main = (function () {
-        function Main() {
-        }
-        Main.main = function () {
-            var points = Main.createPoints(-1, 1, Math.pow(2, -4));
-            var network = new nnpoc.Network();
-            network.populate(2, [4, 4], 1);
-            //network.layers[1].neurons[0].weights[0] = 3;
-            //network.layers[1].neurons[0].weights[1] = 0;
-            //network.layers[1].neurons[1].weights[0] = -1;
-            //network.layers[1].neurons[1].weights[1] = 1;
-            //network.layers[2].neurons[0].weights[0] = 1;
-            //network.layers[2].neurons[0].weights[1] = -1;
-            //network.layers[2].neurons[0].weights[2] = 0;
-            //console.log(network.layers[1].neurons[0].weights);
-            //console.log(network.layers[1].neurons[1].weights);
-            //console.log(network.layers[2].neurons[0].weights);            
-            var data = [];
-            var out = "";
-            points.forEach(function (p) {
-                var result = network.calculate([p.x, p.y]);
-                out += p.x + "\t" + p.y + "\t" + result[0] + "\n";
-                var z = result[0];
-                //z = z > 0.5 ? 0.8 : 0.2;
-                data.push({
-                    x: p.x,
-                    y: p.y,
-                    z: z
-                });
-            });
-            //console.log(out);
-            //network.calculate([1]);
-            //console.log(network);
-            Main.plot(data);
-        };
-        Main.plot = function (data) {
-            var options = {
-                width: '100%',
-                height: '600px',
-                style: 'surface',
-                showPerspective: false,
-                showGrid: true,
-                showShadow: false,
-                keepAspectRatio: true,
-                verticalRatio: 0.5,
-                zMin: -1,
-                zMax: 1,
-                cameraPosition: { horizontal: 0.0, vertical: 3.14 } //top
-            };
-            var graph;
-            graph = document.getElementById('graph');
-            options.cameraPosition = undefined;
-            if (graph)
-                new vis.Graph3d(graph, data, options);
-            graph = document.getElementById('graphTop');
-            options.cameraPosition = { horizontal: 0.0, vertical: 3.14 };
-            if (graph)
-                new vis.Graph3d(graph, data, options);
-            graph = document.getElementById('graphSide');
-            options.cameraPosition = { horizontal: 0.0, vertical: 0 };
-            options.showPerspective = false;
-            if (graph)
-                new vis.Graph3d(graph, data, options);
-        };
-        Main.createPoints = function (min, max, step) {
-            var points = [];
-            for (var x = min; x <= max; x += step) {
-                for (var y = min; y <= max; y += step) {
-                    points.push({ x: x, y: y });
-                }
-            }
-            return points;
-        };
-        return Main;
-    }());
-})(nnpoc || (nnpoc = {}));
-var nnpoc;
-(function (nnpoc) {
     var Network = (function () {
         function Network() {
         }
@@ -104,22 +35,22 @@ var nnpoc;
         Network.prototype.random = function () {
             return Math.round(((Math.random() * 2 - 1) * 4) * 10) / 10;
         };
-        Network.prototype.populate = function (nInputs, hiddens, output) {
+        Network.prototype.populate = function (options) {
             this.layers = [];
             var layer = new nnpoc.Layer();
-            layer.populate(nInputs, 0, this.random);
+            layer.populate(options.Inputs, 0, this.random);
             layer.neurons.push(new nnpoc.Neuron()); //add bias
             this.layers.push(layer);
-            if (hiddens) {
-                for (var i = 0; i < hiddens.length; i++) {
+            if (options.Hiddens) {
+                for (var i = 0; i < options.Hiddens.length; i++) {
                     layer = new nnpoc.Layer();
-                    layer.populate(hiddens[i], this.layers[i].neurons.length, this.random);
+                    layer.populate(options.Hiddens[i], this.layers[i].neurons.length, this.random);
                     layer.neurons.push(new nnpoc.Neuron()); //add bias
                     this.layers.push(layer);
                 }
             }
             layer = new nnpoc.Layer();
-            layer.populate(output, this.layers[this.layers.length - 1].neurons.length, this.random);
+            layer.populate(options.Outputs, this.layers[this.layers.length - 1].neurons.length, this.random);
             this.layers.push(layer);
         };
         Network.prototype.calculate = function (inputs) {
@@ -158,15 +89,6 @@ var nnpoc;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
 (function (nnpoc) {
-    var Edge = (function () {
-        function Edge() {
-        }
-        return Edge;
-    }());
-    nnpoc.Edge = Edge;
-})(nnpoc || (nnpoc = {}));
-var nnpoc;
-(function (nnpoc) {
     var Neuron = (function () {
         function Neuron() {
         }
@@ -197,6 +119,12 @@ var nnviz;
         function PlotController($scope) {
             var _this = this;
             this.$scope = $scope;
+            this.NetworkOptions = {
+                Inputs: 2,
+                Hiddens: [2],
+                Outputs: 1
+            };
+            this.TestInput = [0, 0];
             this.Graph3dOptions = {
                 style: 'surface',
                 zMin: 0,
@@ -236,7 +164,7 @@ var nnviz;
                 }
             };
             this.Network = new nnpoc.Network();
-            this.createPoints(-1, 1, Math.pow(2, -3));
+            this.createPoints(-1, 1, Math.pow(2, -4));
             this.initGraphs();
             this.randomize();
         }
@@ -249,11 +177,8 @@ var nnviz;
             }
         };
         PlotController.prototype.randomize = function () {
-            this.Network.populate(2, [2], 1);
-            this.calcData();
-            this.redrawPlot();
-            this.Network.calculate([0, 0]);
-            this.redrawNetwork();
+            this.Network.populate(this.NetworkOptions);
+            this.redraw();
         };
         PlotController.prototype.calcData = function () {
             var _this = this;
@@ -325,14 +250,14 @@ var nnviz;
         };
         PlotController.prototype.onWheel = function ($event, $delta, $deltaX, $deltaY) {
             if (this.SelectedEdge) {
-                console.log($deltaY);
                 this.SelectedEdge.weight += -0.1 * $deltaY;
-                this.onEdgeChange();
+                this.redraw();
             }
         };
-        PlotController.prototype.onEdgeChange = function () {
+        PlotController.prototype.redraw = function () {
             this.calcData();
             this.redrawPlot();
+            this.Network.calculate(this.TestInput);
             this.redrawNetwork();
         };
         PlotController.prototype.getValueColor = function (value) {

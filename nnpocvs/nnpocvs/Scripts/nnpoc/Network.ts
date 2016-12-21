@@ -10,26 +10,26 @@
             return Math.round(((Math.random() * 2 - 1) * 4) * 10) / 10;
         }
 
-        populate(nInputs: number, hiddens: number[], output: number): void {
+        populate(options: NetworkOptions): void {
             this.layers = [];
 
             var layer = new Layer();
-            layer.populate(nInputs, 0, this.random);
+            layer.populate(options.Inputs, 0, this.random);
             layer.neurons.push(new Neuron()); //add bias
             this.layers.push(layer);
 
 
-            if (hiddens) {
-                for (var i = 0; i < hiddens.length; i++) {
+            if (options.Hiddens) {
+                for (var i = 0; i < options.Hiddens.length; i++) {
                     layer = new Layer();
-                    layer.populate(hiddens[i], this.layers[i].neurons.length, this.random);
+                    layer.populate(options.Hiddens[i], this.layers[i].neurons.length, this.random);
                     layer.neurons.push(new Neuron()); //add bias
                     this.layers.push(layer);
                 }
             }
 
             layer = new Layer();
-            layer.populate(output, this.layers[this.layers.length - 1].neurons.length, this.random);
+            layer.populate(options.Outputs, this.layers[this.layers.length - 1].neurons.length, this.random);
             this.layers.push(layer);
         }
 

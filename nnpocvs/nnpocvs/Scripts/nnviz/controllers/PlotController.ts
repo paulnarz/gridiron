@@ -1,7 +1,14 @@
 ﻿module nnviz {
     declare var vis: any;
 
-    export class PlotController {
+    export class PlotController {        
+        NetworkOptions: nnpoc.NetworkOptions = {
+            Inputs: 2,
+            Hiddens: [2],
+            Outputs: 1
+        }
+        TestInput: number[] = [0, 0];
+
         Network: nnpoc.Network;
         Points: { x: number, y: number }[];
         SelectedEdge: nnpoc.Edge;
@@ -42,7 +49,7 @@
             private $scope: ng.IScope
         ) {
             this.Network = new nnpoc.Network();
-            this.createPoints(-1, 1, Math.pow(2, -3));
+            this.createPoints(-1, 1, Math.pow(2, -4));
             this.initGraphs();
 
             this.randomize();
@@ -59,12 +66,8 @@
         }
 
         randomize(): void {
-            this.Network.populate(2, [ 2 ], 1);            
-            this.calcData();
-            this.redrawPlot();
-
-            this.Network.calculate([0, 0]);
-            this.redrawNetwork();            
+            this.Network.populate(this.NetworkOptions);
+            this.redraw();
         }
 
         calcData(): void {
@@ -175,16 +178,17 @@
         }
 
         onWheel($event, $delta, $deltaX, $deltaY): void {
-            if (this.SelectedEdge) {
-                console.log($deltaY);
+            if (this.SelectedEdge) {                
                 this.SelectedEdge.weight += -0.1 * $deltaY;
-                this.onEdgeChange();
+                this.redraw();
             }            
         }
 
-        onEdgeChange(): void {            
+        redraw(): void {
             this.calcData();
             this.redrawPlot();
+
+            this.Network.calculate(this.TestInput);
             this.redrawNetwork();
         }
 
