@@ -1,7 +1,5 @@
 ﻿module nnviz {
-    declare var vis: any;
-
-    export class PlotController {        
+    export class NNInteractController {
         NetworkOptions: nnpoc.NetworkOptions = {
             Inputs: 2,
             Hiddens: [2],
@@ -42,7 +40,7 @@
                     direction: "LR",
                     sortMethod: "directed"
                 }
-            }                                    
+            }
         };
 
         constructor(
@@ -93,7 +91,7 @@
                     y: p.y,
                     z: z > 0.5 ? 1 : 0
                 });
-            });            
+            });
         }
 
         initGraphs(): void {
@@ -115,30 +113,30 @@
             this.GraphNetwork.on("select", (params) => {
                 this.onGraphNetworkSelect(params);
             });
-        }        
+        }
 
         redrawPlot(): void {
             this.Graph3d.setData(this.Graph3dData);
-            this.Graph2dNormal.setData(this.Graph2dNormalData);            
+            this.Graph2dNormal.setData(this.Graph2dNormalData);
         }
 
         redrawNetwork(): void {
             var nodes = [];
-            var edges = [];                                   
+            var edges = [];
 
             this.Network.layers.forEach((l, i) => {
                 l.neurons.forEach((n, j) => {
-                    var id = i + "_" + j;                    
+                    var id = i + "_" + j;
 
                     nodes.push({
                         id: id,
                         label: (n.value || 0).toFixed(2),
-                        color: this.getValueColor(n.value || 0)                        
+                        color: this.getValueColor(n.value || 0)
                     });
 
                     if (n.edges) {
                         n.edges.forEach((e, k) => {
-                            var fromID = i - 1 + "_" + k;                            
+                            var fromID = i - 1 + "_" + k;
                             var edgeID = i + "_" + j + "_" + k;
                             edges.push({
                                 id: edgeID,
@@ -151,11 +149,11 @@
                     }
                 })
             });
-            
+
             this.GraphNetworkData = {
                 nodes: nodes,
                 edges: edges
-            };            
+            };
 
             this.GraphNetwork.setData(this.GraphNetworkData);
         }
@@ -178,10 +176,10 @@
         }
 
         onWheel($event, $delta, $deltaX, $deltaY): void {
-            if (this.SelectedEdge) {                
+            if (this.SelectedEdge) {
                 this.SelectedEdge.weight += -0.1 * $deltaY;
                 this.redraw();
-            }            
+            }
         }
 
         redraw(): void {
@@ -197,8 +195,8 @@
             return this.hsvToRgb(h, 1, 1);
         }
 
-        getWeightColor(value: number): string {            
-            var h = 240 - ((value + 4) / 8) * 240;        
+        getWeightColor(value: number): string {
+            var h = 240 - ((value + 4) / 8) * 240;
             return this.hsvToRgb(h, 1, 1);
         }
 
@@ -208,19 +206,19 @@
             var x = c * (1 - Math.abs((hp % 2) - 1));
             var r1, g1, b1;
             if (hp < 0) {
-                r1 = 0; g1 = 0; b1 = 0;                
+                r1 = 0; g1 = 0; b1 = 0;
             } else if (hp < 1) {
-                r1 = c; g1 = x; b1 = 0;                
+                r1 = c; g1 = x; b1 = 0;
             } else if (hp < 2) {
-                r1 = x; g1 = c; b1 = 0;                
+                r1 = x; g1 = c; b1 = 0;
             } else if (hp < 3) {
-                r1 = 0; g1 = c; b1 = x;                
+                r1 = 0; g1 = c; b1 = x;
             } else if (hp < 4) {
-                r1 = 0; g1 = x; b1 = c;                
+                r1 = 0; g1 = x; b1 = c;
             } else if (hp < 5) {
-                r1 = x; g1 = 0; b1 = c;                
+                r1 = x; g1 = 0; b1 = c;
             } else if (hp < 6) {
-                r1 = c; g1 = 0; b1 = x;                
+                r1 = c; g1 = 0; b1 = x;
             }
 
             var m = v - c;
@@ -234,5 +232,5 @@
 
     angular
         .module("nnviz")
-        .controller("PlotController", PlotController);
+        .controller("NNInteractController", NNInteractController);
 }

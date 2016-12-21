@@ -115,8 +115,20 @@ var nnviz;
 })(nnviz || (nnviz = {}));
 var nnviz;
 (function (nnviz) {
-    var PlotController = (function () {
-        function PlotController($scope) {
+    var NNEvoController = (function () {
+        function NNEvoController() {
+        }
+        return NNEvoController;
+    }());
+    nnviz.NNEvoController = NNEvoController;
+    angular
+        .module("nnviz")
+        .controller("NNEvoController", NNEvoController);
+})(nnviz || (nnviz = {}));
+var nnviz;
+(function (nnviz) {
+    var NNInteractController = (function () {
+        function NNInteractController($scope) {
             var _this = this;
             this.$scope = $scope;
             this.NetworkOptions = {
@@ -168,7 +180,7 @@ var nnviz;
             this.initGraphs();
             this.randomize();
         }
-        PlotController.prototype.createPoints = function (min, max, step) {
+        NNInteractController.prototype.createPoints = function (min, max, step) {
             this.Points = [];
             for (var x = min; x <= max; x += step) {
                 for (var y = min; y <= max; y += step) {
@@ -176,11 +188,11 @@ var nnviz;
                 }
             }
         };
-        PlotController.prototype.randomize = function () {
+        NNInteractController.prototype.randomize = function () {
             this.Network.populate(this.NetworkOptions);
             this.redraw();
         };
-        PlotController.prototype.calcData = function () {
+        NNInteractController.prototype.calcData = function () {
             var _this = this;
             this.Graph3dData = [];
             this.Graph2dNormalData = [];
@@ -202,7 +214,7 @@ var nnviz;
                 });
             });
         };
-        PlotController.prototype.initGraphs = function () {
+        NNInteractController.prototype.initGraphs = function () {
             var _this = this;
             this.Graph3d = new vis.Graph3d(document.getElementById('graph3d'), this.Graph3dData, this.Graph3dOptions);
             this.Graph2dNormal = new vis.Graph3d(document.getElementById('graph2dNormal'), this.Graph2dNormalData, this.Graph2dNormalOptions);
@@ -211,11 +223,11 @@ var nnviz;
                 _this.onGraphNetworkSelect(params);
             });
         };
-        PlotController.prototype.redrawPlot = function () {
+        NNInteractController.prototype.redrawPlot = function () {
             this.Graph3d.setData(this.Graph3dData);
             this.Graph2dNormal.setData(this.Graph2dNormalData);
         };
-        PlotController.prototype.redrawNetwork = function () {
+        NNInteractController.prototype.redrawNetwork = function () {
             var _this = this;
             var nodes = [];
             var edges = [];
@@ -248,27 +260,27 @@ var nnviz;
             };
             this.GraphNetwork.setData(this.GraphNetworkData);
         };
-        PlotController.prototype.onWheel = function ($event, $delta, $deltaX, $deltaY) {
+        NNInteractController.prototype.onWheel = function ($event, $delta, $deltaX, $deltaY) {
             if (this.SelectedEdge) {
                 this.SelectedEdge.weight += -0.1 * $deltaY;
                 this.redraw();
             }
         };
-        PlotController.prototype.redraw = function () {
+        NNInteractController.prototype.redraw = function () {
             this.calcData();
             this.redrawPlot();
             this.Network.calculate(this.TestInput);
             this.redrawNetwork();
         };
-        PlotController.prototype.getValueColor = function (value) {
+        NNInteractController.prototype.getValueColor = function (value) {
             var h = 240 - value * 240;
             return this.hsvToRgb(h, 1, 1);
         };
-        PlotController.prototype.getWeightColor = function (value) {
+        NNInteractController.prototype.getWeightColor = function (value) {
             var h = 240 - ((value + 4) / 8) * 240;
             return this.hsvToRgb(h, 1, 1);
         };
-        PlotController.prototype.hsvToRgb = function (h, v, s) {
+        NNInteractController.prototype.hsvToRgb = function (h, v, s) {
             var c = v * s;
             var hp = h / 60;
             var x = c * (1 - Math.abs((hp % 2) - 1));
@@ -314,11 +326,11 @@ var nnviz;
             var b = b1 + m;
             return 'rgb(' + Math.floor(r * 255) + ',' + Math.floor(g * 255) + ',' + Math.floor(b * 255) + ')';
         };
-        return PlotController;
+        return NNInteractController;
     }());
-    nnviz.PlotController = PlotController;
+    nnviz.NNInteractController = NNInteractController;
     angular
         .module("nnviz")
-        .controller("PlotController", PlotController);
+        .controller("NNInteractController", NNInteractController);
 })(nnviz || (nnviz = {}));
 //# sourceMappingURL=nnpoc.js.map

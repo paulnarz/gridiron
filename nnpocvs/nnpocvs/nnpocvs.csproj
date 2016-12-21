@@ -26,8 +26,11 @@
     <Content Include="Content\bootstrap-theme.min.css" />
     <Content Include="Content\bootstrap.css" />
     <Content Include="Content\bootstrap.min.css" />
+    <Content Include="Content\site.css" />
     <Content Include="fonts\glyphicons-halflings-regular.svg" />
     <Content Include="index.html" />
+    <Content Include="nnevo.html" />
+    <Content Include="nninteractive.html" />
     <Content Include="Scripts\angular-mocks.js" />
     <Content Include="Scripts\angular.js" />
     <Content Include="Scripts\angular.min.js" />
@@ -68,7 +71,8 @@
     <TypeScriptCompile Include="Scripts\nnpoc\NetworkOptions.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\Neuron.ts" />
     <TypeScriptCompile Include="Scripts\nnviz\app.modules.ts" />
-    <TypeScriptCompile Include="Scripts\nnviz\controllers\PlotController.ts" />
+    <TypeScriptCompile Include="Scripts\nnviz\controllers\NNEvoController.ts" />
+    <TypeScriptCompile Include="Scripts\nnviz\controllers\NNInteractController.ts" />
     <TypeScriptCompile Include="Scripts\typings\angularjs\angular-animate.d.ts" />
     <TypeScriptCompile Include="Scripts\typings\angularjs\angular-component-router.d.ts" />
     <TypeScriptCompile Include="Scripts\typings\angularjs\angular-cookies.d.ts" />
@@ -78,6 +82,7 @@
     <TypeScriptCompile Include="Scripts\typings\angularjs\angular-sanitize.d.ts" />
     <TypeScriptCompile Include="Scripts\typings\angularjs\angular.d.ts" />
     <TypeScriptCompile Include="Scripts\typings\jquery\jquery.d.ts" />
+    <TypeScriptCompile Include="Scripts\typings\vis\vis.d.ts" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">12.0</VisualStudioVersion>

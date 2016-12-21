@@ -1,0 +1,43 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Project GridIron : Interactive Neural Network</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="Content/bootstrap.min.css">
+    <link rel="stylesheet" href="Content/bootstrap-theme.min.css">            
+    <link rel="stylesheet" href="Content/site.css">
+</head>
+<body ng-app="nnviz">
+    <div class="container">
+        <div ng-controller="NNInteractController as vm" ng-cloak>
+            <div class="row">
+                <div class="col-sm-6">
+                    <div id="graph3d"></div>
+                </div>
+                <div class="col-sm-6">
+                    <div id="graph2dNormal"></div>
+                </div>
+            </div>
+            <div class="row">
+                <button type="button" class="btn btn-default" ng-click="vm.randomize()">
+                    Randomize
+                </button>
+                <!--<input type="number" step="0.1" ng-disabled="!vm.SelectedEdge" ng-model="vm.SelectedEdge.weight" ng-change="vm.onEdgeChange()" />-->
+            </div>
+            <div class="row">
+                <div class="col-sm-12" msd-Wheel="vm.onWheel($event, $delta, $deltaX, $deltaY)">
+                    <div id="graphNetwork" style="height: 600px;" class="table-bordered"></div>
+                </div>                
+            </div>
+            <div class="row">
+                <pre>{{vm.Network | json }}</pre>
+            </div>
+        </div>
+    </div>    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.17.0/vis.min.js"></script>
+    <script src="Scripts/angular.min.js"></script>
+    <script src="Scripts/hamster.js"></script>
+    <script src="Scripts/mousewheel.js"></script>    
+    <script src="Scripts/nnpoc.js"></script>
+</body>
+</html>
