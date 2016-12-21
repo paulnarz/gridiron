@@ -1,11 +1,215 @@
 var nnpoc;
 (function (nnpoc) {
+    var Color = (function () {
+        function Color() {
+        }
+        Color.hsvToRgb = function (h, v, s) {
+            var c = v * s;
+            var hp = h / 60;
+            var x = c * (1 - Math.abs((hp % 2) - 1));
+            var r1, g1, b1;
+            if (hp < 0) {
+                r1 = 0;
+                g1 = 0;
+                b1 = 0;
+            }
+            else if (hp < 1) {
+                r1 = c;
+                g1 = x;
+                b1 = 0;
+            }
+            else if (hp < 2) {
+                r1 = x;
+                g1 = c;
+                b1 = 0;
+            }
+            else if (hp < 3) {
+                r1 = 0;
+                g1 = c;
+                b1 = x;
+            }
+            else if (hp < 4) {
+                r1 = 0;
+                g1 = x;
+                b1 = c;
+            }
+            else if (hp < 5) {
+                r1 = x;
+                g1 = 0;
+                b1 = c;
+            }
+            else if (hp < 6) {
+                r1 = c;
+                g1 = 0;
+                b1 = x;
+            }
+            var m = v - c;
+            var r = r1 + m;
+            var g = g1 + m;
+            var b = b1 + m;
+            return 'rgb(' + Math.floor(r * 255) + ',' + Math.floor(g * 255) + ',' + Math.floor(b * 255) + ')';
+        };
+        Color.getValueColor = function (value) {
+            var h = 240 - (value || 0) * 240;
+            return Color.hsvToRgb(h, 1, 1);
+        };
+        return Color;
+    }());
+    nnpoc.Color = Color;
+})(nnpoc || (nnpoc = {}));
+var nnpoc;
+(function (nnpoc) {
     var Edge = (function () {
         function Edge() {
         }
         return Edge;
     }());
     nnpoc.Edge = Edge;
+})(nnpoc || (nnpoc = {}));
+var nnpoc;
+(function (nnpoc) {
+    var FuncTrainer = (function () {
+        function FuncTrainer(targetFunc, points) {
+            this.FuncMin = 0;
+            this.FuncMax = 0;
+            this.Options = {
+                Inputs: 2,
+                Hiddens: [2],
+                Outputs: 1
+            };
+            this.TargetFunc = targetFunc;
+            this.Points = points;
+            //start with a random best.
+            this.Best = new nnpoc.Network();
+            this.Best.populate(this.Options);
+            this.initFunc();
+            this.NEvo = new nnpoc.Neuroevolution();
+        }
+        FuncTrainer.prototype.initFunc = function () {
+            var _this = this;
+            this.FuncMin = Infinity;
+            this.FuncMax = -Infinity;
+            this.Points.forEach(function (p) {
+                var z = _this.TargetFunc(p.x, p.y);
+                if (z < _this.FuncMin)
+                    _this.FuncMin = z;
+                if (z > _this.FuncMax)
+                    _this.FuncMax = z;
+            });
+        };
+        FuncTrainer.prototype.calc = function (x, y) {
+            var z = this.Best.calculate([x, y])[0];
+            return nnpoc.MathH.expand(z, this.FuncMin, this.FuncMax);
+        };
+        FuncTrainer.prototype.train = function () {
+            this.Best.populate(this.Options);
+        };
+        return FuncTrainer;
+    }());
+    nnpoc.FuncTrainer = FuncTrainer;
+})(nnpoc || (nnpoc = {}));
+var nnpoc;
+(function (nnpoc) {
+    var Graph = (function () {
+        function Graph() {
+        }
+        Graph.init3d = function (elementId, options) {
+            return new vis.Graph3d(document.getElementById(elementId), undefined, options);
+        };
+        Graph.initNetwork = function (elementId, options) {
+            return new vis.Network(document.getElementById(elementId), undefined, options);
+        };
+        Graph.calcNetworkData = function (network, points) {
+            var data = [];
+            points.forEach(function (p) {
+                var z = network.calculate([p.x, p.y])[0];
+                data.push({
+                    x: p.x,
+                    y: p.y,
+                    z: z
+                });
+            });
+            return data;
+        };
+        Graph.map3d = function (data, func) {
+            var result = [];
+            data.forEach(function (p) {
+                result.push(func(p));
+            });
+            return result;
+        };
+        Graph.calcData = function (func, points) {
+            var data = [];
+            points.forEach(function (p) {
+                var z = func(p.x, p.y);
+                data.push({
+                    x: p.x,
+                    y: p.y,
+                    z: z
+                });
+            });
+            return data;
+        };
+        Graph.buildNodes = function (network) {
+            var nodes = [];
+            var edges = [];
+            network.layers.forEach(function (l, li) {
+                l.neurons.forEach(function (n, ni) {
+                    var id = li + "_" + ni;
+                    nodes.push({
+                        id: id,
+                        label: (n.value || 0).toFixed(2),
+                        color: nnpoc.Color.getValueColor(n.value || 0)
+                    });
+                    if (n.edges) {
+                        n.edges.forEach(function (e, ei) {
+                            var fromID = li - 1 + "_" + ei;
+                            var edgeID = li + "_" + ni + "_" + ei;
+                            edges.push({
+                                id: edgeID,
+                                from: fromID,
+                                to: id,
+                                label: e.weight.toFixed(2),
+                                color: nnpoc.Color.getValueColor(nnpoc.MathH.normalize(e.weight, -4, 4))
+                            });
+                        });
+                    }
+                });
+            });
+            return {
+                nodes: nodes,
+                edges: edges
+            };
+        };
+        Graph.NetworkGraph = {
+            physics: {
+                enabled: false
+            },
+            layout: {
+                hierarchical: {
+                    direction: "LR",
+                    sortMethod: "directed"
+                }
+            }
+        };
+        Graph.SurfaceGraph = {
+            style: 'surface'
+        };
+        Graph.SurfaceGraphZeroOne = {
+            style: 'surface',
+            zMin: 0,
+            zMax: 1,
+        };
+        Graph.OverHead = {
+            style: 'surface',
+            zMin: 0,
+            zMax: 1,
+            showPerspective: false,
+            cameraPosition: { horizontal: 0.0, vertical: 3.14 }
+        };
+        return Graph;
+    }());
+    nnpoc.Graph = Graph;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
 (function (nnpoc) {
@@ -23,6 +227,21 @@ var nnpoc;
         return Layer;
     }());
     nnpoc.Layer = Layer;
+})(nnpoc || (nnpoc = {}));
+var nnpoc;
+(function (nnpoc) {
+    var MathH = (function () {
+        function MathH() {
+        }
+        MathH.normalize = function (value, min, max) {
+            return ((value || 0) + min) / (max - min);
+        };
+        MathH.expand = function (value, min, max) {
+            return (value || 0) * (max - min) + min;
+        };
+        return MathH;
+    }());
+    nnpoc.MathH = MathH;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
 (function (nnpoc) {
@@ -89,6 +308,21 @@ var nnpoc;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
 (function (nnpoc) {
+    var Neuroevolution = (function () {
+        function Neuroevolution() {
+        }
+        Neuroevolution.prototype.restart = function () {
+        };
+        Neuroevolution.prototype.nextGeneration = function () {
+            var networks = [];
+            return networks;
+        };
+        return Neuroevolution;
+    }());
+    nnpoc.Neuroevolution = Neuroevolution;
+})(nnpoc || (nnpoc = {}));
+var nnpoc;
+(function (nnpoc) {
     var Neuron = (function () {
         function Neuron() {
         }
@@ -139,30 +373,28 @@ var nnviz;
             this.$scope = $scope;
             this.TargetFunc = function (x, y) { return x * y + 2 * x + -3 * y - 1; };
             this.Points = nnpoc.Points.createPoints2d(-1, 1, 3);
-            this.Graph3dOptions = {
-                style: 'surface',
-            };
+            this.Trainer = new nnpoc.FuncTrainer(this.TargetFunc, this.Points);
             this.initGraphs();
-            this.calcData();
-            this.redrawPlot();
+            this.drawTarget();
+            this.drawBest();
         }
-        NNEvoController.prototype.calcData = function () {
-            var _this = this;
-            this.Graph3dData = [];
-            this.Points.forEach(function (p) {
-                var z = _this.TargetFunc(p.x, p.y);
-                _this.Graph3dData.push({
-                    x: p.x,
-                    y: p.y,
-                    z: z
-                });
-            });
-        };
         NNEvoController.prototype.initGraphs = function () {
-            this.Graph3d = new vis.Graph3d(document.getElementById('graph3d'), this.Graph3dData, this.Graph3dOptions);
+            this.Graph3dTarget = nnpoc.Graph.init3d("graph3dTarget", nnpoc.Graph.SurfaceGraph);
+            this.Graph3dBest = nnpoc.Graph.init3d("graph3dBest", nnpoc.Graph.SurfaceGraph);
+            this.GraphNetwork = nnpoc.Graph.initNetwork("graphNetwork", nnpoc.Graph.NetworkGraph);
         };
-        NNEvoController.prototype.redrawPlot = function () {
-            this.Graph3d.setData(this.Graph3dData);
+        NNEvoController.prototype.drawTarget = function () {
+            var _this = this;
+            this.Graph3dTarget.setData(nnpoc.Graph.calcData(function (x, y) { return _this.TargetFunc(x, y); }, this.Points));
+        };
+        NNEvoController.prototype.drawBest = function () {
+            var _this = this;
+            this.Graph3dBest.setData(nnpoc.Graph.calcData(function (x, y) { return _this.Trainer.calc(x, y); }, this.Points));
+            this.GraphNetwork.setData(nnpoc.Graph.buildNodes(this.Trainer.Best));
+        };
+        NNEvoController.prototype.train = function () {
+            this.Trainer.train();
+            this.drawBest();
         };
         return NNEvoController;
     }());
@@ -184,29 +416,6 @@ var nnviz;
             };
             this.TestInput = [0, 0];
             this.Points = nnpoc.Points.createPoints2d(-1, 1, 3);
-            this.Graph3dOptions = {
-                style: 'surface',
-                zMin: 0,
-                zMax: 1,
-            };
-            this.Graph2dNormalOptions = {
-                style: 'surface',
-                zMin: 0,
-                zMax: 1,
-                showPerspective: false,
-                cameraPosition: { horizontal: 0.0, vertical: 3.14 }
-            };
-            this.GraphNetworkOptions = {
-                physics: {
-                    enabled: false
-                },
-                layout: {
-                    hierarchical: {
-                        direction: "LR",
-                        sortMethod: "directed"
-                    }
-                }
-            };
             this.onGraphNetworkSelect = function (params) {
                 if (params.edges && params.edges.length == 1) {
                     var edgeID = params.edges[0];
@@ -226,143 +435,38 @@ var nnviz;
             this.initGraphs();
             this.randomize();
         }
-        NNInteractController.prototype.randomize = function () {
-            this.Network.populate(this.NetworkOptions);
-            this.redraw();
-        };
-        NNInteractController.prototype.calcData = function () {
-            var _this = this;
-            this.Graph3dData = [];
-            this.Graph2dNormalData = [];
-            this.Points.forEach(function (p) {
-                var result = _this.Network.calculate([
-                    p.x,
-                    p.y
-                ]);
-                var z = result[0];
-                _this.Graph3dData.push({
-                    x: p.x,
-                    y: p.y,
-                    z: z
-                });
-                _this.Graph2dNormalData.push({
-                    x: p.x,
-                    y: p.y,
-                    z: z > 0.5 ? 1 : 0
-                });
-            });
-        };
         NNInteractController.prototype.initGraphs = function () {
             var _this = this;
-            this.Graph3d = new vis.Graph3d(document.getElementById('graph3d'), this.Graph3dData, this.Graph3dOptions);
-            this.Graph2dNormal = new vis.Graph3d(document.getElementById('graph2dNormal'), this.Graph2dNormalData, this.Graph2dNormalOptions);
-            this.GraphNetwork = new vis.Network(document.getElementById('graphNetwork'), this.GraphNetworkData, this.GraphNetworkOptions);
+            this.Graph3d = nnpoc.Graph.init3d("graph3d", nnpoc.Graph.SurfaceGraphZeroOne);
+            this.Graph2dNormal = nnpoc.Graph.init3d("graph2dNormal", nnpoc.Graph.OverHead);
+            this.GraphNetwork = nnpoc.Graph.initNetwork("graphNetwork", nnpoc.Graph.NetworkGraph);
             this.GraphNetwork.on("select", function (params) {
                 _this.onGraphNetworkSelect(params);
             });
         };
-        NNInteractController.prototype.redrawPlot = function () {
-            this.Graph3d.setData(this.Graph3dData);
-            this.Graph2dNormal.setData(this.Graph2dNormalData);
+        NNInteractController.prototype.randomize = function () {
+            this.Network.populate(this.NetworkOptions);
+            this.redraw();
         };
-        NNInteractController.prototype.redrawNetwork = function () {
-            var _this = this;
-            var nodes = [];
-            var edges = [];
-            this.Network.layers.forEach(function (l, i) {
-                l.neurons.forEach(function (n, j) {
-                    var id = i + "_" + j;
-                    nodes.push({
-                        id: id,
-                        label: (n.value || 0).toFixed(2),
-                        color: _this.getValueColor(n.value || 0)
-                    });
-                    if (n.edges) {
-                        n.edges.forEach(function (e, k) {
-                            var fromID = i - 1 + "_" + k;
-                            var edgeID = i + "_" + j + "_" + k;
-                            edges.push({
-                                id: edgeID,
-                                from: fromID,
-                                to: id,
-                                label: e.weight.toFixed(2),
-                                color: _this.getWeightColor(e.weight)
-                            });
-                        });
-                    }
-                });
-            });
-            this.GraphNetworkData = {
-                nodes: nodes,
-                edges: edges
-            };
-            this.GraphNetwork.setData(this.GraphNetworkData);
+        NNInteractController.prototype.redraw = function () {
+            var data = nnpoc.Graph.calcNetworkData(this.Network, this.Points);
+            var normal = nnpoc.Graph.map3d(data, (function (p) {
+                return {
+                    x: p.x,
+                    y: p.y,
+                    z: p.z > 0.5 ? 0.8 : 0.2
+                };
+            }));
+            this.Graph3d.setData(data);
+            this.Graph2dNormal.setData(normal);
+            this.Network.calculate(this.TestInput);
+            this.GraphNetwork.setData(nnpoc.Graph.buildNodes(this.Network));
         };
         NNInteractController.prototype.onWheel = function ($event, $delta, $deltaX, $deltaY) {
             if (this.SelectedEdge) {
                 this.SelectedEdge.weight += -0.1 * $deltaY;
                 this.redraw();
             }
-        };
-        NNInteractController.prototype.redraw = function () {
-            this.calcData();
-            this.redrawPlot();
-            this.Network.calculate(this.TestInput);
-            this.redrawNetwork();
-        };
-        NNInteractController.prototype.getValueColor = function (value) {
-            var h = 240 - value * 240;
-            return this.hsvToRgb(h, 1, 1);
-        };
-        NNInteractController.prototype.getWeightColor = function (value) {
-            var h = 240 - ((value + 4) / 8) * 240;
-            return this.hsvToRgb(h, 1, 1);
-        };
-        NNInteractController.prototype.hsvToRgb = function (h, v, s) {
-            var c = v * s;
-            var hp = h / 60;
-            var x = c * (1 - Math.abs((hp % 2) - 1));
-            var r1, g1, b1;
-            if (hp < 0) {
-                r1 = 0;
-                g1 = 0;
-                b1 = 0;
-            }
-            else if (hp < 1) {
-                r1 = c;
-                g1 = x;
-                b1 = 0;
-            }
-            else if (hp < 2) {
-                r1 = x;
-                g1 = c;
-                b1 = 0;
-            }
-            else if (hp < 3) {
-                r1 = 0;
-                g1 = c;
-                b1 = x;
-            }
-            else if (hp < 4) {
-                r1 = 0;
-                g1 = x;
-                b1 = c;
-            }
-            else if (hp < 5) {
-                r1 = x;
-                g1 = 0;
-                b1 = c;
-            }
-            else if (hp < 6) {
-                r1 = c;
-                g1 = 0;
-                b1 = x;
-            }
-            var m = v - c;
-            var r = r1 + m;
-            var g = g1 + m;
-            var b = b1 + m;
-            return 'rgb(' + Math.floor(r * 255) + ',' + Math.floor(g * 255) + ',' + Math.floor(b * 255) + ')';
         };
         return NNInteractController;
     }());

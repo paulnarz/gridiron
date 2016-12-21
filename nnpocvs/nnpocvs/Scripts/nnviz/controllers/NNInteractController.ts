@@ -11,45 +11,26 @@
         Points = nnpoc.Points.createPoints2d(-1, 1, 3);
         SelectedEdge: nnpoc.Edge;
 
-        Graph3d: any;
-        Graph3dData: { x: number, y: number, z: number }[];
-        Graph3dOptions: any = {
-            style: 'surface',
-            zMin: 0,
-            zMax: 1,
-        };
-
-        Graph2dNormal: any;
-        Graph2dNormalData: { x: number, y: number, z: number }[];
-        Graph2dNormalOptions: any = {
-            style: 'surface',
-            zMin: 0,
-            zMax: 1,
-            showPerspective: false,
-            cameraPosition: { horizontal: 0.0, vertical: 3.14 }
-        };
-
+        Graph3d: any;        
+        Graph2dNormal: any;        
         GraphNetwork: any;
-        GraphNetworkData: any;
-        GraphNetworkOptions: any = {
-            physics: {
-                enabled: false
-            },
-            layout: {
-                hierarchical: {
-                    direction: "LR",
-                    sortMethod: "directed"
-                }
-            }
-        };
 
         constructor(
             private $scope: ng.IScope
         ) {
             this.Network = new nnpoc.Network();
             this.initGraphs();
-
             this.randomize();
+        }
+
+        initGraphs(): void {
+            this.Graph3d = nnpoc.Graph.init3d("graph3d", nnpoc.Graph.SurfaceGraphZeroOne);
+            this.Graph2dNormal = nnpoc.Graph.init3d("graph2dNormal", nnpoc.Graph.OverHead);
+            this.GraphNetwork = nnpoc.Graph.initNetwork("graphNetwork", nnpoc.Graph.NetworkGraph);
+
+            this.GraphNetwork.on("select", (params) => {
+                this.onGraphNetworkSelect(params);
+            });
         }
 
         randomize(): void {
@@ -57,94 +38,20 @@
             this.redraw();
         }
 
-        calcData(): void {
-            this.Graph3dData = [];
-            this.Graph2dNormalData = [];
-
-            this.Points.forEach(p => {
-                var result = this.Network.calculate([
-                    p.x,
-                    p.y
-                ]);
-
-                var z = result[0];
-
-                this.Graph3dData.push({
+        redraw(): void {
+            var data = nnpoc.Graph.calcNetworkData(this.Network, this.Points);
+            var normal = nnpoc.Graph.map3d(data, (p => {
+                return {
                     x: p.x,
-                    y: p.y,
-                    z: z
-                });
+                    y: p.y, 
+                    z: p.z > 0.5 ? 0.8 : 0.2
+                };
+            }));
 
-                this.Graph2dNormalData.push({
-                    x: p.x,
-                    y: p.y,
-                    z: z > 0.5 ? 1 : 0
-                });
-            });
-        }
-
-        initGraphs(): void {
-            this.Graph3d = new vis.Graph3d(
-                document.getElementById('graph3d'),
-                this.Graph3dData,
-                this.Graph3dOptions);
-
-            this.Graph2dNormal = new vis.Graph3d(
-                document.getElementById('graph2dNormal'),
-                this.Graph2dNormalData,
-                this.Graph2dNormalOptions);
-
-            this.GraphNetwork = new vis.Network(
-                document.getElementById('graphNetwork'),
-                this.GraphNetworkData,
-                this.GraphNetworkOptions);
-
-            this.GraphNetwork.on("select", (params) => {
-                this.onGraphNetworkSelect(params);
-            });
-        }
-
-        redrawPlot(): void {
-            this.Graph3d.setData(this.Graph3dData);
-            this.Graph2dNormal.setData(this.Graph2dNormalData);
-        }
-
-        redrawNetwork(): void {
-            var nodes = [];
-            var edges = [];
-
-            this.Network.layers.forEach((l, i) => {
-                l.neurons.forEach((n, j) => {
-                    var id = i + "_" + j;
-
-                    nodes.push({
-                        id: id,
-                        label: (n.value || 0).toFixed(2),
-                        color: this.getValueColor(n.value || 0)
-                    });
-
-                    if (n.edges) {
-                        n.edges.forEach((e, k) => {
-                            var fromID = i - 1 + "_" + k;
-                            var edgeID = i + "_" + j + "_" + k;
-                            edges.push({
-                                id: edgeID,
-                                from: fromID,
-                                to: id,
-                                label: e.weight.toFixed(2),
-                                color: this.getWeightColor(e.weight)
-                            });
-                        })
-                    }
-                })
-            });
-
-            this.GraphNetworkData = {
-                nodes: nodes,
-                edges: edges
-            };
-
-            this.GraphNetwork.setData(this.GraphNetworkData);
+            this.Graph3d.setData(data);
+            this.Graph2dNormal.setData(normal);
+            this.Network.calculate(this.TestInput);
+            this.GraphNetwork.setData(nnpoc.Graph.buildNodes(this.Network));    
         }
 
         onGraphNetworkSelect = (params: any): void => {
@@ -169,53 +76,6 @@
                 this.SelectedEdge.weight += -0.1 * $deltaY;
                 this.redraw();
             }
-        }
-
-        redraw(): void {
-            this.calcData();
-            this.redrawPlot();
-
-            this.Network.calculate(this.TestInput);
-            this.redrawNetwork();
-        }
-
-        getValueColor(value: number): string {
-            var h = 240 - value * 240;
-            return this.hsvToRgb(h, 1, 1);
-        }
-
-        getWeightColor(value: number): string {
-            var h = 240 - ((value + 4) / 8) * 240;
-            return this.hsvToRgb(h, 1, 1);
-        }
-
-        hsvToRgb(h: number, v: number, s: number): string {
-            var c = v * s;
-            var hp = h / 60;
-            var x = c * (1 - Math.abs((hp % 2) - 1));
-            var r1, g1, b1;
-            if (hp < 0) {
-                r1 = 0; g1 = 0; b1 = 0;
-            } else if (hp < 1) {
-                r1 = c; g1 = x; b1 = 0;
-            } else if (hp < 2) {
-                r1 = x; g1 = c; b1 = 0;
-            } else if (hp < 3) {
-                r1 = 0; g1 = c; b1 = x;
-            } else if (hp < 4) {
-                r1 = 0; g1 = x; b1 = c;
-            } else if (hp < 5) {
-                r1 = x; g1 = 0; b1 = c;
-            } else if (hp < 6) {
-                r1 = c; g1 = 0; b1 = x;
-            }
-
-            var m = v - c;
-            var r = r1 + m;
-            var g = g1 + m;
-            var b = b1 + m;
-
-            return 'rgb(' + Math.floor(r * 255) + ',' + Math.floor(g * 255) + ',' + Math.floor(b * 255) + ')';
         }
     }
 

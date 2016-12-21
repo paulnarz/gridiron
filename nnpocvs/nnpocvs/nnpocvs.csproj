@@ -65,10 +65,15 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <TypeScriptCompile Include="Scripts\nnpoc\Color.ts" />
+    <TypeScriptCompile Include="Scripts\nnpoc\FuncTrainer.ts" />
+    <TypeScriptCompile Include="Scripts\nnpoc\Graph.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\Layer.ts" />
+    <TypeScriptCompile Include="Scripts\nnpoc\MathH.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\Network.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\Edge.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\NetworkOptions.ts" />
+    <TypeScriptCompile Include="Scripts\nnpoc\Neuroevolution.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\Neuron.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\Points.ts" />
     <TypeScriptCompile Include="Scripts\nnviz\app.modules.ts" />
