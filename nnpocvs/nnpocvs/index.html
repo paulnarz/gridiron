@@ -8,7 +8,12 @@
     <style>
         [ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
             display: none !important;
+        }        
+
+        #graphNetwork {
+            border: 1px solid black;
         }
+
     </style>
 </head>
 <body ng-app="nnviz">
@@ -26,20 +31,22 @@
                 <button type="button" class="btn btn-default" ng-click="vm.randomize()">
                     Randomize
                 </button>
-                <input type="number" step="0.1" ng-disabled="!vm.SelectedEdge" ng-model="vm.SelectedEdge.weight" ng-change="vm.onEdgeChange()" />
+                <!--<input type="number" step="0.1" ng-disabled="!vm.SelectedEdge" ng-model="vm.SelectedEdge.weight" ng-change="vm.onEdgeChange()" />-->
             </div>
             <div class="row">
-                <div class="col-sm-12">
+                <div class="col-sm-12" msd-Wheel="vm.onWheel($event, $delta, $deltaX, $deltaY)">
                     <div id="graphNetwork" style="height: 600px;"></div>
                 </div>                
             </div>
-            <div class="row">                
+            <div class="row">
                 <pre>{{vm.Network | json }}</pre>
             </div>
         </div>
-    </div>
+    </div>    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.17.0/vis.min.js"></script>
     <script src="Scripts/angular.min.js"></script>
+    <script src="Scripts/hamster.js"></script>
+    <script src="Scripts/mousewheel.js"></script>    
     <script src="Scripts/nnpoc.js"></script>
 </body>
 </html>

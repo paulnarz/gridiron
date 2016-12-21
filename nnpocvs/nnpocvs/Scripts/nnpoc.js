@@ -1,14 +1,5 @@
 var nnpoc;
 (function (nnpoc) {
-    var Edge = (function () {
-        function Edge() {
-        }
-        return Edge;
-    }());
-    nnpoc.Edge = Edge;
-})(nnpoc || (nnpoc = {}));
-var nnpoc;
-(function (nnpoc) {
     var Layer = (function () {
         function Layer() {
         }
@@ -167,6 +158,15 @@ var nnpoc;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
 (function (nnpoc) {
+    var Edge = (function () {
+        function Edge() {
+        }
+        return Edge;
+    }());
+    nnpoc.Edge = Edge;
+})(nnpoc || (nnpoc = {}));
+var nnpoc;
+(function (nnpoc) {
     var Neuron = (function () {
         function Neuron() {
         }
@@ -187,7 +187,9 @@ var nnpoc;
 var nnviz;
 (function (nnviz) {
     "use strict";
-    var m = angular.module("nnviz", []);
+    var m = angular.module("nnviz", [
+        'monospaced.mousewheel'
+    ]);
 })(nnviz || (nnviz = {}));
 var nnviz;
 (function (nnviz) {
@@ -320,6 +322,13 @@ var nnviz;
                 edges: edges
             };
             this.GraphNetwork.setData(this.GraphNetworkData);
+        };
+        PlotController.prototype.onWheel = function ($event, $delta, $deltaX, $deltaY) {
+            if (this.SelectedEdge) {
+                console.log($deltaY);
+                this.SelectedEdge.weight += -0.1 * $deltaY;
+                this.onEdgeChange();
+            }
         };
         PlotController.prototype.onEdgeChange = function () {
             this.calcData();

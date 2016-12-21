@@ -111,7 +111,7 @@
 
             this.GraphNetwork.on("select", (params) => {
                 this.onGraphNetworkSelect(params);
-            });            
+            });
         }        
 
         redrawPlot(): void {
@@ -172,6 +172,14 @@
                 this.SelectedEdge = null;
                 this.$scope.$apply();
             }
+        }
+
+        onWheel($event, $delta, $deltaX, $deltaY): void {
+            if (this.SelectedEdge) {
+                console.log($deltaY);
+                this.SelectedEdge.weight += -0.1 * $deltaY;
+                this.onEdgeChange();
+            }            
         }
 
         onEdgeChange(): void {            

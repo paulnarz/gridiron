@@ -1,5 +1,7 @@
 ﻿module nnviz {
     "use strict";
 
-    var m = angular.module("nnviz", []);
+    var m = angular.module("nnviz", [
+        'monospaced.mousewheel'
+    ]);
 }
