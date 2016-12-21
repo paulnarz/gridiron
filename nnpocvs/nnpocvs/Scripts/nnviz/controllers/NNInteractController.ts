@@ -24,8 +24,8 @@
         }
 
         initGraphs(): void {
-            this.Graph3d = nnpoc.Graph.init3d("graph3d", nnpoc.Graph.SurfaceGraphZeroOne);
-            this.Graph2dNormal = nnpoc.Graph.init3d("graph2dNormal", nnpoc.Graph.OverHead);
+            this.Graph3d = nnpoc.Graph.init3d("graph3d", nnpoc.Graph.SurfaceGraph(0, 1));
+            this.Graph2dNormal = nnpoc.Graph.init3d("graph2dNormal", nnpoc.Graph.OverHead(0, 1));
             this.GraphNetwork = nnpoc.Graph.initNetwork("graphNetwork", nnpoc.Graph.NetworkGraph);
 
             this.GraphNetwork.on("select", (params) => {
@@ -40,13 +40,7 @@
 
         redraw(): void {
             var data = nnpoc.Graph.calcNetworkData(this.Network, this.Points);
-            var normal = nnpoc.Graph.map3d(data, (p => {
-                return {
-                    x: p.x,
-                    y: p.y, 
-                    z: p.z > 0.5 ? 0.8 : 0.2
-                };
-            }));
+            var normal = nnpoc.Graph.mapToDecision(data, 0.5, 0.8, 0.2);
 
             this.Graph3d.setData(data);
             this.Graph2dNormal.setData(normal);

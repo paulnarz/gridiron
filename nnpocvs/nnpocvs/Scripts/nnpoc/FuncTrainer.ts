@@ -37,6 +37,10 @@
             });            
         }
 
+        getBest(): Network {
+            return this.Best;
+        }
+
         calc(x: number, y: number): number {            
             var z = this.Best.calculate([x, y])[0];
             return MathH.expand(z, this.FuncMin, this.FuncMax);            

@@ -97,6 +97,9 @@ var nnpoc;
                     _this.FuncMax = z;
             });
         };
+        FuncTrainer.prototype.getBest = function () {
+            return this.Best;
+        };
         FuncTrainer.prototype.calc = function (x, y) {
             var z = this.Best.calculate([x, y])[0];
             return nnpoc.MathH.expand(z, this.FuncMin, this.FuncMax);
@@ -113,6 +116,22 @@ var nnpoc;
     var Graph = (function () {
         function Graph() {
         }
+        Graph.SurfaceGraph = function (zMin, zMax) {
+            return {
+                style: 'surface',
+                zMin: zMin,
+                zMax: zMax,
+            };
+        };
+        Graph.OverHead = function (zMin, zMax) {
+            return {
+                style: 'surface',
+                zMin: zMin,
+                zMax: zMax,
+                showPerspective: false,
+                cameraPosition: { horizontal: 0.0, vertical: 3.14 }
+            };
+        };
         Graph.init3d = function (elementId, options) {
             return new vis.Graph3d(document.getElementById(elementId), undefined, options);
         };
@@ -130,6 +149,17 @@ var nnpoc;
                 });
             });
             return data;
+        };
+        Graph.mapToDecision = function (data, cutoff, high, low) {
+            var result = [];
+            data.forEach(function (p) {
+                result.push({
+                    x: p.x,
+                    y: p.y,
+                    z: p.z > cutoff ? high : low
+                });
+            });
+            return result;
         };
         Graph.map3d = function (data, func) {
             var result = [];
@@ -191,21 +221,6 @@ var nnpoc;
                     sortMethod: "directed"
                 }
             }
-        };
-        Graph.SurfaceGraph = {
-            style: 'surface'
-        };
-        Graph.SurfaceGraphZeroOne = {
-            style: 'surface',
-            zMin: 0,
-            zMax: 1,
-        };
-        Graph.OverHead = {
-            style: 'surface',
-            zMin: 0,
-            zMax: 1,
-            showPerspective: false,
-            cameraPosition: { horizontal: 0.0, vertical: 3.14 }
         };
         return Graph;
     }());
@@ -374,26 +389,36 @@ var nnviz;
             this.TargetFunc = function (x, y) { return x * y + 2 * x + -3 * y - 1; };
             this.Points = nnpoc.Points.createPoints2d(-1, 1, 3);
             this.Trainer = new nnpoc.FuncTrainer(this.TargetFunc, this.Points);
+            this.Network = this.Trainer.getBest();
             this.initGraphs();
             this.drawTarget();
             this.drawBest();
         }
         NNEvoController.prototype.initGraphs = function () {
-            this.Graph3dTarget = nnpoc.Graph.init3d("graph3dTarget", nnpoc.Graph.SurfaceGraph);
-            this.Graph3dBest = nnpoc.Graph.init3d("graph3dBest", nnpoc.Graph.SurfaceGraph);
+            this.Graph3dTarget = nnpoc.Graph.init3d("graph3dTarget", nnpoc.Graph.SurfaceGraph());
+            this.Graph3dBest = nnpoc.Graph.init3d("graph3dBest", nnpoc.Graph.SurfaceGraph(this.Trainer.FuncMin, this.Trainer.FuncMax));
+            this.Graph2dTarget = nnpoc.Graph.init3d("graph2dTarget", nnpoc.Graph.OverHead(-1, 1));
+            this.Graph2dBest = nnpoc.Graph.init3d("graph2dBest", nnpoc.Graph.OverHead(-1, 1));
             this.GraphNetwork = nnpoc.Graph.initNetwork("graphNetwork", nnpoc.Graph.NetworkGraph);
         };
         NNEvoController.prototype.drawTarget = function () {
             var _this = this;
-            this.Graph3dTarget.setData(nnpoc.Graph.calcData(function (x, y) { return _this.TargetFunc(x, y); }, this.Points));
+            var data = nnpoc.Graph.calcData(function (x, y) { return _this.TargetFunc(x, y); }, this.Points);
+            var data2d = nnpoc.Graph.mapToDecision(data, 0, 1, -1);
+            this.Graph3dTarget.setData(data);
+            this.Graph2dTarget.setData(data2d);
         };
         NNEvoController.prototype.drawBest = function () {
             var _this = this;
-            this.Graph3dBest.setData(nnpoc.Graph.calcData(function (x, y) { return _this.Trainer.calc(x, y); }, this.Points));
-            this.GraphNetwork.setData(nnpoc.Graph.buildNodes(this.Trainer.Best));
+            var data = nnpoc.Graph.calcData(function (x, y) { return _this.Trainer.calc(x, y); }, this.Points);
+            var data2d = nnpoc.Graph.mapToDecision(data, 0, 1, -1);
+            this.Graph3dBest.setData(data);
+            this.Graph2dBest.setData(data2d);
+            this.GraphNetwork.setData(nnpoc.Graph.buildNodes(this.Network));
         };
         NNEvoController.prototype.train = function () {
             this.Trainer.train();
+            this.Network = this.Trainer.getBest();
             this.drawBest();
         };
         return NNEvoController;
@@ -437,8 +462,8 @@ var nnviz;
         }
         NNInteractController.prototype.initGraphs = function () {
             var _this = this;
-            this.Graph3d = nnpoc.Graph.init3d("graph3d", nnpoc.Graph.SurfaceGraphZeroOne);
-            this.Graph2dNormal = nnpoc.Graph.init3d("graph2dNormal", nnpoc.Graph.OverHead);
+            this.Graph3d = nnpoc.Graph.init3d("graph3d", nnpoc.Graph.SurfaceGraph(0, 1));
+            this.Graph2dNormal = nnpoc.Graph.init3d("graph2dNormal", nnpoc.Graph.OverHead(0, 1));
             this.GraphNetwork = nnpoc.Graph.initNetwork("graphNetwork", nnpoc.Graph.NetworkGraph);
             this.GraphNetwork.on("select", function (params) {
                 _this.onGraphNetworkSelect(params);
@@ -450,13 +475,7 @@ var nnviz;
         };
         NNInteractController.prototype.redraw = function () {
             var data = nnpoc.Graph.calcNetworkData(this.Network, this.Points);
-            var normal = nnpoc.Graph.map3d(data, (function (p) {
-                return {
-                    x: p.x,
-                    y: p.y,
-                    z: p.z > 0.5 ? 0.8 : 0.2
-                };
-            }));
+            var normal = nnpoc.Graph.mapToDecision(data, 0.5, 0.8, 0.2);
             this.Graph3d.setData(data);
             this.Graph2dNormal.setData(normal);
             this.Network.calculate(this.TestInput);

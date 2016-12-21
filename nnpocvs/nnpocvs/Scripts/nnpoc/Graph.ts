@@ -10,25 +10,25 @@
                     sortMethod: "directed"
                 }
             }
-        };
-
-        static SurfaceGraph = {
-            style: 'surface'
         };        
 
-        static SurfaceGraphZeroOne = {
-            style: 'surface',
-            zMin: 0,
-            zMax: 1,
-        };
+        static SurfaceGraph(zMin?: number, zMax?: number): any {
+            return {
+                style: 'surface',
+                zMin: zMin,
+                zMax: zMax,
+            };
+        }
 
-        static OverHead = {
-            style: 'surface',
-            zMin: 0,
-            zMax: 1,
-            showPerspective: false,
-            cameraPosition: { horizontal: 0.0, vertical: 3.14 }
-        };
+        static OverHead(zMin?: number, zMax?: number): any {
+            return {
+                style: 'surface',
+                zMin: zMin,
+                zMax: zMax,
+                showPerspective: false,
+                cameraPosition: { horizontal: 0.0, vertical: 3.14 }
+            };
+        }
 
         static init3d(elementId: string, options: any): any {
             return new vis.Graph3d(document.getElementById(elementId), undefined, options);
@@ -52,6 +52,20 @@
             });
 
             return data;
+        }
+
+        static mapToDecision(data: Point3d[], cutoff: number, high: number, low: number): Point3d[] {
+            var result = [];
+
+            data.forEach(p => {
+                result.push({
+                    x: p.x,
+                    y: p.y,
+                    z: p.z > cutoff ? high : low
+                });
+            });
+
+            return result;
         }
 
         static map3d(data: Point3d[], func: (p: Point3d) => Point3d): Point3d[] {
