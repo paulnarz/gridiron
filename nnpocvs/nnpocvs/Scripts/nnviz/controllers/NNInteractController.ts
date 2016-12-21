@@ -8,7 +8,7 @@
         TestInput: number[] = [0, 0];
 
         Network: nnpoc.Network;
-        Points: { x: number, y: number }[];
+        Points = nnpoc.Points.createPoints2d(-1, 1, 3);
         SelectedEdge: nnpoc.Edge;
 
         Graph3d: any;
@@ -47,20 +47,9 @@
             private $scope: ng.IScope
         ) {
             this.Network = new nnpoc.Network();
-            this.createPoints(-1, 1, Math.pow(2, -4));
             this.initGraphs();
 
             this.randomize();
-        }
-
-        createPoints(min: number, max: number, step: number): void {
-            this.Points = [];
-
-            for (var x = min; x <= max; x += step) {
-                for (var y = min; y <= max; y += step) {
-                    this.Points.push({ x: x, y: y });
-                }
-            }
         }
 
         randomize(): void {

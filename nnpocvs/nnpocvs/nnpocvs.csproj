@@ -70,6 +70,7 @@
     <TypeScriptCompile Include="Scripts\nnpoc\Edge.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\NetworkOptions.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\Neuron.ts" />
+    <TypeScriptCompile Include="Scripts\nnpoc\Points.ts" />
     <TypeScriptCompile Include="Scripts\nnviz\app.modules.ts" />
     <TypeScriptCompile Include="Scripts\nnviz\controllers\NNEvoController.ts" />
     <TypeScriptCompile Include="Scripts\nnviz\controllers\NNInteractController.ts" />
