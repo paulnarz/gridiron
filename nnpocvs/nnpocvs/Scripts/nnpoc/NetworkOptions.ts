@@ -1,7 +1,8 @@
 ﻿module nnpoc {
     export interface NetworkOptions {
-        Inputs: number;
-        Hiddens: number[];
-        Outputs: number;
+        inputs: number;
+        hiddens: number[];
+        outputs: number;
+        randomClamped: () => number;
     }
 }

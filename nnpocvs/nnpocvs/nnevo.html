@@ -11,29 +11,49 @@
     <div class="container">
         <div ng-controller="NNEvoController as vm" ng-cloak>
             <div class="row">
-                <div class="col-sm-6">
-                    <div id="graph3dTarget"></div>
-                </div>
-                <div class="col-sm-6">
-                    <div id="graph3dBest"></div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-sm-6">
-                    <div id="graph2dTarget"></div>
-                </div>
-                <div class="col-sm-6">
-                    <div id="graph2dBest"></div>
-                </div>
-            </div>
-            <div class="row">
                 <button type="button" class="btn btn-default" ng-click="vm.train()">
                     Train
                 </button>
             </div>
             <div class="row">
-                <div class="col-sm-12">
-                    <div id="graphNetwork" style="height: 600px;"></div>
+                <div class="col-sm-9">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div id="graph3dTarget"></div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div id="graph3dBest"></div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div id="graph2dTarget"></div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div id="graph2dBest"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div id="graphNetwork" style="height: 300px;"></div>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Score</th>
+                                <th>Network</th>                                
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr ng-repeat="ns in vm.Trainer.Networks"
+                                ng-click="vm.selectNetwork(ns.network)"
+                                ng-class="{ 'active': ns.network == vm.Network }">
+                                <td>{{$index + 1}}</td>                                
+                                <td>{{ns.score}}</td>
+                                <td>{{ns.network.getDisplay()}}</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

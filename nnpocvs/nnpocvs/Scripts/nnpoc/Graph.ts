@@ -42,8 +42,25 @@
             var data = [];
 
             points.forEach(p => {
-                var z = network.calculate([ p.x, p.y ])[0];
-                
+                var z = network.calculate([ p.x, p.y ])[0];                
+
+                data.push({
+                    x: p.x,
+                    y: p.y,
+                    z: z
+                });
+            });
+
+            return data;
+        }
+
+        static calcNetworkDataExpand(network: Network, points: Point2d[], min: number, max: number): Point3d[] {
+            var data = [];
+
+            points.forEach(p => {
+                var z = network.calculate([p.x, p.y])[0];
+                z = MathH.expand(z, min, max);
+
                 data.push({
                     x: p.x,
                     y: p.y,
@@ -116,7 +133,7 @@
                                 id: edgeID,
                                 from: fromID,
                                 to: id,
-                                label: e.weight.toFixed(2),
+                                label: (e.weight || 0).toFixed(2),
                                 color: nnpoc.Color.getValueColor(nnpoc.MathH.normalize(e.weight, -4, 4))
                             });
                         })

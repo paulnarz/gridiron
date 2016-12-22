@@ -67,6 +67,7 @@
   <ItemGroup>
     <TypeScriptCompile Include="Scripts\nnpoc\Color.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\FuncTrainer.ts" />
+    <TypeScriptCompile Include="Scripts\nnpoc\Genome.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\Graph.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\Layer.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\MathH.ts" />

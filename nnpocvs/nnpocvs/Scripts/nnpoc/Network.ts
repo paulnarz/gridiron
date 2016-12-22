@@ -1,4 +1,9 @@
 ﻿module nnpoc {
+    export interface NetworkData {
+        neurons: number[],
+        weights: number[]
+    }
+
     export class Network {
         layers: Layer[];
 
@@ -6,30 +11,25 @@
             return (1 / (1 + Math.exp(-value)));
         }
 
-        random(): number {
-            return Math.round(((Math.random() * 2 - 1) * 4) * 10) / 10;
-        }
-
         populate(options: NetworkOptions): void {
             this.layers = [];
 
             var layer = new Layer();
-            layer.populate(options.Inputs, 0, this.random);
+            layer.populate(options.inputs, 0, options.randomClamped);
             layer.neurons.push(new Neuron()); //add bias
             this.layers.push(layer);
 
-
-            if (options.Hiddens) {
-                for (var i = 0; i < options.Hiddens.length; i++) {
+            if (options.hiddens) {
+                for (var i = 0; i < options.hiddens.length; i++) {
                     layer = new Layer();
-                    layer.populate(options.Hiddens[i], this.layers[i].neurons.length, this.random);
+                    layer.populate(options.hiddens[i], this.layers[i].neurons.length, options.randomClamped);
                     layer.neurons.push(new Neuron()); //add bias
                     this.layers.push(layer);
                 }
             }
 
             layer = new Layer();
-            layer.populate(options.Outputs, this.layers[this.layers.length - 1].neurons.length, this.random);
+            layer.populate(options.outputs, this.layers[this.layers.length - 1].neurons.length, options.randomClamped);
             this.layers.push(layer);
         }
 
@@ -68,6 +68,50 @@
             }
 
             return out;
+        }
+
+        getData(): NetworkData {
+            var data: NetworkData = {
+                neurons: [],
+                weights: []
+            };
+
+            this.layers.forEach(l => {
+                data.neurons.push(l.neurons.length);
+                l.neurons.forEach(n => {
+                    if (n.edges) {
+                        n.edges.forEach(e => {
+                            data.weights.push(e.weight);
+                        });
+                    }
+                });
+            });
+
+            return data;
+        }
+
+        setData(data: NetworkData): void {
+            var previousNeurons = 0;
+            var index = 0;
+            this.layers = [];
+
+            data.neurons.forEach((neurons, i) => {
+                var layer = new Layer();
+                layer.populate(neurons, previousNeurons, undefined);          
+                //remove edges for the biases.
+                if (i < data.neurons.length - 1)                          
+                    layer.neurons[layer.neurons.length - 1].edges = undefined;
+                layer.neurons.forEach(neuron => {
+                    if (neuron.edges) {
+                        neuron.edges.forEach(edge => {
+                            edge.weight = data.weights[index];
+                            index++;
+                        });
+                    }
+                });                
+                this.layers.push(layer);
+                previousNeurons = neurons;
+            });
         }
     }
 }

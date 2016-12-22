@@ -72,18 +72,21 @@ var nnpoc;
         function FuncTrainer(targetFunc, points) {
             this.FuncMin = 0;
             this.FuncMax = 0;
-            this.Options = {
-                Inputs: 2,
-                Hiddens: [2],
-                Outputs: 1
-            };
             this.TargetFunc = targetFunc;
             this.Points = points;
-            //start with a random best.
-            this.Best = new nnpoc.Network();
-            this.Best.populate(this.Options);
             this.initFunc();
-            this.NEvo = new nnpoc.Neuroevolution();
+            this.NEvo = new nnpoc.Neuroevolution({
+                population: 50,
+                elitism: 0.2,
+                randomBehaviour: 0.2,
+                network: {
+                    inputs: 2,
+                    hiddens: [2],
+                    outputs: 1,
+                    randomClamped: function () { return Math.random() * 8 - 4; }
+                }
+            });
+            this.train();
         }
         FuncTrainer.prototype.initFunc = function () {
             var _this = this;
@@ -98,14 +101,30 @@ var nnpoc;
             });
         };
         FuncTrainer.prototype.getBest = function () {
-            return this.Best;
+            return this.Networks[0].network;
         };
         FuncTrainer.prototype.calc = function (x, y) {
-            var z = this.Best.calculate([x, y])[0];
+            var z = this.getBest().calculate([x, y])[0];
             return nnpoc.MathH.expand(z, this.FuncMin, this.FuncMax);
         };
         FuncTrainer.prototype.train = function () {
-            this.Best.populate(this.Options);
+            var _this = this;
+            this.Networks = [];
+            var networks = this.NEvo.nextGeneration();
+            networks.forEach(function (network, i) {
+                var score = 0;
+                _this.Points.forEach(function (p) {
+                    var tv = _this.TargetFunc(p.x, p.y);
+                    var nv = nnpoc.MathH.expand(network.calculate([p.x, p.y])[0], _this.FuncMin, _this.FuncMax);
+                    score += (tv - nv) * (tv - nv);
+                });
+                _this.NEvo.networkScore(network, score);
+                _this.Networks.push({
+                    network: network,
+                    score: score
+                });
+            });
+            this.Networks.sort(function (a, b) { return a.score - b.score; });
         };
         return FuncTrainer;
     }());
@@ -142,6 +161,19 @@ var nnpoc;
             var data = [];
             points.forEach(function (p) {
                 var z = network.calculate([p.x, p.y])[0];
+                data.push({
+                    x: p.x,
+                    y: p.y,
+                    z: z
+                });
+            });
+            return data;
+        };
+        Graph.calcNetworkDataExpand = function (network, points, min, max) {
+            var data = [];
+            points.forEach(function (p) {
+                var z = network.calculate([p.x, p.y])[0];
+                z = nnpoc.MathH.expand(z, min, max);
                 data.push({
                     x: p.x,
                     y: p.y,
@@ -199,7 +231,7 @@ var nnpoc;
                                 id: edgeID,
                                 from: fromID,
                                 to: id,
-                                label: e.weight.toFixed(2),
+                                label: (e.weight || 0).toFixed(2),
                                 color: nnpoc.Color.getValueColor(nnpoc.MathH.normalize(e.weight, -4, 4))
                             });
                         });
@@ -266,25 +298,22 @@ var nnpoc;
         Network.prototype.activation = function (value) {
             return (1 / (1 + Math.exp(-value)));
         };
-        Network.prototype.random = function () {
-            return Math.round(((Math.random() * 2 - 1) * 4) * 10) / 10;
-        };
         Network.prototype.populate = function (options) {
             this.layers = [];
             var layer = new nnpoc.Layer();
-            layer.populate(options.Inputs, 0, this.random);
+            layer.populate(options.inputs, 0, options.randomClamped);
             layer.neurons.push(new nnpoc.Neuron()); //add bias
             this.layers.push(layer);
-            if (options.Hiddens) {
-                for (var i = 0; i < options.Hiddens.length; i++) {
+            if (options.hiddens) {
+                for (var i = 0; i < options.hiddens.length; i++) {
                     layer = new nnpoc.Layer();
-                    layer.populate(options.Hiddens[i], this.layers[i].neurons.length, this.random);
+                    layer.populate(options.hiddens[i], this.layers[i].neurons.length, options.randomClamped);
                     layer.neurons.push(new nnpoc.Neuron()); //add bias
                     this.layers.push(layer);
                 }
             }
             layer = new nnpoc.Layer();
-            layer.populate(options.Outputs, this.layers[this.layers.length - 1].neurons.length, this.random);
+            layer.populate(options.outputs, this.layers[this.layers.length - 1].neurons.length, options.randomClamped);
             this.layers.push(layer);
         };
         Network.prototype.calculate = function (inputs) {
@@ -317,6 +346,46 @@ var nnpoc;
             }
             return out;
         };
+        Network.prototype.getData = function () {
+            var data = {
+                neurons: [],
+                weights: []
+            };
+            this.layers.forEach(function (l) {
+                data.neurons.push(l.neurons.length);
+                l.neurons.forEach(function (n) {
+                    if (n.edges) {
+                        n.edges.forEach(function (e) {
+                            data.weights.push(e.weight);
+                        });
+                    }
+                });
+            });
+            return data;
+        };
+        Network.prototype.setData = function (data) {
+            var _this = this;
+            var previousNeurons = 0;
+            var index = 0;
+            this.layers = [];
+            data.neurons.forEach(function (neurons, i) {
+                var layer = new nnpoc.Layer();
+                layer.populate(neurons, previousNeurons, undefined);
+                //remove edges for the biases.
+                if (i < data.neurons.length - 1)
+                    layer.neurons[layer.neurons.length - 1].edges = undefined;
+                layer.neurons.forEach(function (neuron) {
+                    if (neuron.edges) {
+                        neuron.edges.forEach(function (edge) {
+                            edge.weight = data.weights[index];
+                            index++;
+                        });
+                    }
+                });
+                _this.layers.push(layer);
+                previousNeurons = neurons;
+            });
+        };
         return Network;
     }());
     nnpoc.Network = Network;
@@ -324,13 +393,50 @@ var nnpoc;
 var nnpoc;
 (function (nnpoc) {
     var Neuroevolution = (function () {
-        function Neuroevolution() {
+        function Neuroevolution(options) {
+            this.options = options;
         }
-        Neuroevolution.prototype.restart = function () {
-        };
         Neuroevolution.prototype.nextGeneration = function () {
-            var networks = [];
-            return networks;
+            if (!this.genomes)
+                return this.generateFirstGeneration();
+            else
+                return this.generateNextGeneration();
+        };
+        Neuroevolution.prototype.generateFirstGeneration = function () {
+            this.genomes = [];
+            var out = [];
+            for (var i = 0; i < this.options.population; i++) {
+                var n = new nnpoc.Network();
+                n.populate(this.options.network);
+                out.push(n);
+            }
+            return out;
+        };
+        Neuroevolution.prototype.generateNextGeneration = function () {
+            var nexts = [];
+            this.genomes.sort(function (a, b) { return a.score - b.score; });
+            for (var i = 0, l = Math.round(this.options.elitism * this.options.population); i < l; i++) {
+                if (nexts.length < this.options.population) {
+                    var n = new nnpoc.Network();
+                    n.setData(this.genomes[i].data);
+                    nexts.push(n);
+                }
+            }
+            for (var i = 0, l = Math.round(this.options.randomBehaviour * this.options.population); i < l; i++) {
+                if (nexts.length < this.options.population) {
+                    var n = new nnpoc.Network();
+                    n.populate(this.options.network);
+                    nexts.push(n);
+                }
+            }
+            this.genomes = [];
+            return nexts;
+        };
+        Neuroevolution.prototype.networkScore = function (network, score) {
+            this.genomes.push({
+                data: network.getData(),
+                score: score
+            });
         };
         return Neuroevolution;
     }());
@@ -347,7 +453,10 @@ var nnpoc;
             this.edges = [];
             for (var i = 0; i < nInputs; i++) {
                 var edge = new nnpoc.Edge();
-                edge.weight = random();
+                if (random)
+                    edge.weight = random();
+                else
+                    edge.weight = 0;
                 this.edges.push(edge);
             }
         };
@@ -390,9 +499,10 @@ var nnviz;
             this.Points = nnpoc.Points.createPoints2d(-1, 1, 3);
             this.Trainer = new nnpoc.FuncTrainer(this.TargetFunc, this.Points);
             this.Network = this.Trainer.getBest();
+            this.Network2 = new nnpoc.Network();
             this.initGraphs();
             this.drawTarget();
-            this.drawBest();
+            this.drawNetwork();
         }
         NNEvoController.prototype.initGraphs = function () {
             this.Graph3dTarget = nnpoc.Graph.init3d("graph3dTarget", nnpoc.Graph.SurfaceGraph());
@@ -408,18 +518,24 @@ var nnviz;
             this.Graph3dTarget.setData(data);
             this.Graph2dTarget.setData(data2d);
         };
-        NNEvoController.prototype.drawBest = function () {
-            var _this = this;
-            var data = nnpoc.Graph.calcData(function (x, y) { return _this.Trainer.calc(x, y); }, this.Points);
+        NNEvoController.prototype.drawNetwork = function () {
+            var data = nnpoc.Graph.calcNetworkDataExpand(this.Network, this.Points, this.Trainer.FuncMin, this.Trainer.FuncMax);
             var data2d = nnpoc.Graph.mapToDecision(data, 0, 1, -1);
             this.Graph3dBest.setData(data);
             this.Graph2dBest.setData(data2d);
+            this.Network.calculate([0, 0]);
+            this.Network2.setData(this.Network.getData());
+            //this.Network2.calculate([0, 0]);
             this.GraphNetwork.setData(nnpoc.Graph.buildNodes(this.Network));
         };
         NNEvoController.prototype.train = function () {
             this.Trainer.train();
             this.Network = this.Trainer.getBest();
-            this.drawBest();
+            this.drawNetwork();
+        };
+        NNEvoController.prototype.selectNetwork = function (network) {
+            this.Network = network;
+            this.drawNetwork();
         };
         return NNEvoController;
     }());
@@ -435,9 +551,10 @@ var nnviz;
             var _this = this;
             this.$scope = $scope;
             this.NetworkOptions = {
-                Inputs: 2,
-                Hiddens: [2],
-                Outputs: 1
+                inputs: 2,
+                hiddens: [2],
+                outputs: 1,
+                randomClamped: function () { return Math.round(((Math.random() * 2 - 1) * 4) * 10) / 10; }
             };
             this.TestInput = [0, 0];
             this.Points = nnpoc.Points.createPoints2d(-1, 1, 3);

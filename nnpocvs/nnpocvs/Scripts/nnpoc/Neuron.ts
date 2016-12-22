@@ -5,12 +5,14 @@
 
         populate(nInputs: number, random: () => number): void {
             if (!nInputs)
-                return;
-
+                return; 
             this.edges = [];
             for (var i = 0; i < nInputs; i++) {
-                var edge = new Edge();
-                edge.weight = random();
+                var edge = new Edge();                
+                if (random)
+                    edge.weight = random();
+                else
+                    edge.weight = 0;
                 this.edges.push(edge);
             }
         }

@@ -1,9 +1,10 @@
 ﻿module nnviz {
     export class NNInteractController {
         NetworkOptions: nnpoc.NetworkOptions = {
-            Inputs: 2,
-            Hiddens: [2],
-            Outputs: 1
+            inputs: 2,
+            hiddens: [2],
+            outputs: 1,
+            randomClamped: () => { return Math.round(((Math.random() * 2 - 1) * 4) * 10) / 10; }
         }
         TestInput: number[] = [0, 0];
 
