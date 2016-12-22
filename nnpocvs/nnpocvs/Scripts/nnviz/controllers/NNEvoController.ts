@@ -1,7 +1,7 @@
 ﻿module nnviz {
     export class NNEvoController {
-        TargetFunc = (x: number, y: number): number => { return x * y + 2 * x + -3 * y - 1; };
-        Points = nnpoc.Points.createPoints2d(-1, 1, 3);
+        TargetFunc = (x: number, y: number): number => { return 2 * x * x - 3 * y * x + y * 4 - 3; };
+        Points = nnpoc.Points.createPoints2d(-1, 1, 3); 
         Network: nnpoc.Network;
         Network2: nnpoc.Network;
         Trainer: nnpoc.FuncTrainer;

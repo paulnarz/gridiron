@@ -19,9 +19,12 @@
                 population: 50,
                 elitism: 0.2,
                 randomBehaviour: 0.2,
+                mutationRate: 0.1,
+                mutationRange: 0.5,
+                nbChild: 1,
                 network: {
                     inputs: 2,
-                    hiddens: [2],
+                    hiddens: [3, 3],
                     outputs: 1,
                     randomClamped: () => { return Math.random() * 8 - 4; }
                 }

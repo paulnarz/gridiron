@@ -1,6 +1,6 @@
 ﻿module nnpoc {
     export interface Genome {
-        data: NetworkData;        
+        network: NetworkData;        
         score: number;        
     }
 }

@@ -79,9 +79,12 @@ var nnpoc;
                 population: 50,
                 elitism: 0.2,
                 randomBehaviour: 0.2,
+                mutationRate: 0.1,
+                mutationRange: 0.5,
+                nbChild: 1,
                 network: {
                     inputs: 2,
-                    hiddens: [2],
+                    hiddens: [3, 3],
                     outputs: 1,
                     randomClamped: function () { return Math.random() * 8 - 4; }
                 }
@@ -415,26 +418,62 @@ var nnpoc;
         Neuroevolution.prototype.generateNextGeneration = function () {
             var nexts = [];
             this.genomes.sort(function (a, b) { return a.score - b.score; });
-            for (var i = 0, l = Math.round(this.options.elitism * this.options.population); i < l; i++) {
+            for (var i_1 = 0, l = Math.round(this.options.elitism * this.options.population); i_1 < l; i_1++) {
                 if (nexts.length < this.options.population) {
                     var n = new nnpoc.Network();
-                    n.setData(this.genomes[i].data);
+                    n.setData(this.genomes[i_1].network);
                     nexts.push(n);
                 }
             }
-            for (var i = 0, l = Math.round(this.options.randomBehaviour * this.options.population); i < l; i++) {
+            for (var i_2 = 0, l = Math.round(this.options.randomBehaviour * this.options.population); i_2 < l; i_2++) {
                 if (nexts.length < this.options.population) {
                     var n = new nnpoc.Network();
                     n.populate(this.options.network);
                     nexts.push(n);
                 }
             }
+            var max = 0;
+            while (nexts.length < this.options.population) {
+                for (var i = 0; i < max; i++) {
+                    var childs = this.breed(this.genomes[i], this.genomes[max], (this.options.nbChild > 0 ? this.options.nbChild : 1));
+                    for (var c in childs) {
+                        var n = new nnpoc.Network();
+                        n.setData(childs[c].network);
+                        nexts.push(n);
+                        if (nexts.length >= this.options.population) {
+                            break;
+                        }
+                    }
+                }
+                max++;
+                if (max >= this.genomes.length - 1) {
+                    max = 0;
+                }
+            }
             this.genomes = [];
             return nexts;
         };
+        Neuroevolution.prototype.breed = function (g1, g2, nbChilds) {
+            var datas = [];
+            for (var nb = 0; nb < nbChilds; nb++) {
+                var data = JSON.parse(JSON.stringify(g1));
+                for (var i in g2.network.weights) {
+                    if (Math.random() <= 0.5) {
+                        data.network.weights[i] = g2.network.weights[i];
+                    }
+                }
+                for (var i in data.network.weights) {
+                    if (Math.random() <= this.options.mutationRate) {
+                        data.network.weights[i] += Math.random() * this.options.mutationRange * 2 - this.options.mutationRange;
+                    }
+                }
+                datas.push(data);
+            }
+            return datas;
+        };
         Neuroevolution.prototype.networkScore = function (network, score) {
             this.genomes.push({
-                data: network.getData(),
+                network: network.getData(),
                 score: score
             });
         };
@@ -495,7 +534,7 @@ var nnviz;
     var NNEvoController = (function () {
         function NNEvoController($scope) {
             this.$scope = $scope;
-            this.TargetFunc = function (x, y) { return x * y + 2 * x + -3 * y - 1; };
+            this.TargetFunc = function (x, y) { return 2 * x * x - 3 * y * x + y * 4 - 3; };
             this.Points = nnpoc.Points.createPoints2d(-1, 1, 3);
             this.Trainer = new nnpoc.FuncTrainer(this.TargetFunc, this.Points);
             this.Network = this.Trainer.getBest();
