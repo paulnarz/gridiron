@@ -59,13 +59,28 @@
         }
 
         reset(): void {
-            if (this.TrainStop) {
-                this.$interval.cancel(this.TrainStop);
-                this.TrainStop = undefined;
-            }
             this.Generations = 0;
             this.Trainer.reset();
             this.Network = this.Trainer.getBest();
+            this.drawNetwork();
+        }
+
+        updateFunc(): void {
+            this.Errors = null;
+
+            try {
+                this.TargetFunc = Parser.parse(this.TargetFuncString).toJSFunction(["x", "y"]) as nnpoc.Func2d;
+                this.TargetFunc(0, 0);
+            }
+            catch (ex) {
+                this.TargetFunc = null;
+                this.Errors = ex.message;
+                return;
+            }
+
+            this.Trainer.setFunc(this.TargetFunc);
+            this.updateGraphBounds();
+            this.drawTarget();
             this.drawNetwork();
         }
 
@@ -75,22 +90,6 @@
                 this.TrainStop = undefined;
                 return;
             }
-
-            this.Errors = null;
-
-            try {
-                this.TargetFunc = Parser.parse(this.TargetFuncString).toJSFunction(["x", "y"]) as nnpoc.Func2d;
-                this.TargetFunc(0, 0);
-            }
-            catch (ex) {
-                this.Errors = ex.message;
-                return;
-            }
-
-            this.Trainer.setFunc(this.TargetFunc);
-            this.updateGraphBounds();
-            this.drawTarget();
-            this.drawNetwork();
 
             this.TrainStop = this.$interval(() => {
                 this.Generations++;

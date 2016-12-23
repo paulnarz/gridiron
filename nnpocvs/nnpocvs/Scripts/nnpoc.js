@@ -584,13 +584,25 @@ var nnviz;
             this.GraphNetwork.setData(nnpoc.Graph.buildNodes(this.Network));
         };
         NNEvoController.prototype.reset = function () {
-            if (this.TrainStop) {
-                this.$interval.cancel(this.TrainStop);
-                this.TrainStop = undefined;
-            }
             this.Generations = 0;
             this.Trainer.reset();
             this.Network = this.Trainer.getBest();
+            this.drawNetwork();
+        };
+        NNEvoController.prototype.updateFunc = function () {
+            this.Errors = null;
+            try {
+                this.TargetFunc = Parser.parse(this.TargetFuncString).toJSFunction(["x", "y"]);
+                this.TargetFunc(0, 0);
+            }
+            catch (ex) {
+                this.TargetFunc = null;
+                this.Errors = ex.message;
+                return;
+            }
+            this.Trainer.setFunc(this.TargetFunc);
+            this.updateGraphBounds();
+            this.drawTarget();
             this.drawNetwork();
         };
         NNEvoController.prototype.train = function () {
@@ -600,19 +612,6 @@ var nnviz;
                 this.TrainStop = undefined;
                 return;
             }
-            this.Errors = null;
-            try {
-                this.TargetFunc = Parser.parse(this.TargetFuncString).toJSFunction(["x", "y"]);
-                this.TargetFunc(0, 0);
-            }
-            catch (ex) {
-                this.Errors = ex.message;
-                return;
-            }
-            this.Trainer.setFunc(this.TargetFunc);
-            this.updateGraphBounds();
-            this.drawTarget();
-            this.drawNetwork();
             this.TrainStop = this.$interval(function () {
                 _this.Generations++;
                 _this.Trainer.train();

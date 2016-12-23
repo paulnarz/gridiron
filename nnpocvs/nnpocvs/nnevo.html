@@ -10,20 +10,41 @@
 <body ng-app="nnviz">
     <div class="container">
         <div ng-controller="NNEvoController as vm" ng-cloak>
+            <div class="row">
+                <div class="col-sm-9">
+                    <div class="form-group">
+                        <input class="form-control"
+                               ng-class="{ 
+                                'has-errors': vm.Errors
+                               }"
+                               type="text"
+                               ng-model="vm.TargetFuncString"
+                               ng-keyup="$event.keyCode == 13 && vm.updateFunc()"/>
+                        <div ng-show="vm.Errors" class="alert alert-danger">
+                            {{vm.Errors}}
+                        </div>
+                    </div>                    
+                </div>                
+            </div>
             <div class="row">                
-                <input type="text" ng-model="vm.TargetFuncString" />            
-                <button type="button" class="btn btn-default" ng-click="vm.train()">
-                    {{ vm.TrainStop ? "Stop" : "Train" }}
-                </button>
-                <button type="button" class="btn btn-default" ng-click="vm.reset()">
-                    Reset
-                </button>
-                <span>
-                    Generations: {{vm.Generations}}
-                </span>
-                <span ng-show="vm.Errors" class="error">
-                    {{vm.Errors}}
-                </span>    
+                <div class="col-sm-9">
+                    <div class="form-group">
+                        <button type="button" class="btn btn-default" ng-click="vm.updateFunc()">
+                            Set Function
+                        </button>
+                        <button type="button" class="btn btn-default" ng-click="vm.train()">
+                            {{ !vm.TrainStop ? "Start Training" : "Stop Training" }}
+                        </button>
+                        <button type="button" class="btn btn-default" ng-click="vm.reset()">
+                            Reset
+                        </button>
+                    </div>                    
+                </div>           
+                <div class="col-sm-3">
+                    <h4>
+                        Generations: {{vm.Generations}}
+                    </h4>
+                </div>     
             </div>            
             <div class="row">
                 <div class="col-sm-9">
