@@ -532,10 +532,12 @@ var nnviz;
 var nnviz;
 (function (nnviz) {
     var NNEvoController = (function () {
-        function NNEvoController($scope) {
+        function NNEvoController($scope, $interval) {
             this.$scope = $scope;
+            this.$interval = $interval;
             this.TargetFunc = function (x, y) { return 2 * x * x - 3 * y * x + y * 4 - 3; };
             this.Points = nnpoc.Points.createPoints2d(-1, 1, 3);
+            this.Generations = 0;
             this.Trainer = new nnpoc.FuncTrainer(this.TargetFunc, this.Points);
             this.Network = this.Trainer.getBest();
             this.Network2 = new nnpoc.Network();
@@ -543,6 +545,7 @@ var nnviz;
             this.drawTarget();
             this.drawNetwork();
         }
+        ;
         NNEvoController.prototype.initGraphs = function () {
             this.Graph3dTarget = nnpoc.Graph.init3d("graph3dTarget", nnpoc.Graph.SurfaceGraph());
             this.Graph3dBest = nnpoc.Graph.init3d("graph3dBest", nnpoc.Graph.SurfaceGraph(this.Trainer.FuncMin, this.Trainer.FuncMax));
@@ -568,9 +571,19 @@ var nnviz;
             this.GraphNetwork.setData(nnpoc.Graph.buildNodes(this.Network));
         };
         NNEvoController.prototype.train = function () {
-            this.Trainer.train();
-            this.Network = this.Trainer.getBest();
-            this.drawNetwork();
+            var _this = this;
+            if (this.TrainStop) {
+                this.$interval.cancel(this.TrainStop);
+                this.TrainStop = undefined;
+            }
+            else {
+                this.TrainStop = this.$interval(function () {
+                    _this.Generations++;
+                    _this.Trainer.train();
+                    _this.Network = _this.Trainer.getBest();
+                    _this.drawNetwork();
+                }, 250);
+            }
         };
         NNEvoController.prototype.selectNetwork = function (network) {
             this.Network = network;

@@ -5,6 +5,8 @@
         Network: nnpoc.Network;
         Network2: nnpoc.Network;
         Trainer: nnpoc.FuncTrainer;
+        TrainStop: ng.IPromise<void>;
+        Generations: number = 0;;
 
         Graph3dTarget: any;
         Graph3dBest: any;
@@ -13,7 +15,8 @@
         GraphNetwork: any;        
 
         constructor(
-            private $scope: ng.IScope
+            private $scope: ng.IScope,
+            private $interval: ng.IIntervalService
         ) {
             this.Trainer = new nnpoc.FuncTrainer(this.TargetFunc, this.Points);
             this.Network = this.Trainer.getBest();
@@ -50,10 +53,19 @@
             this.GraphNetwork.setData(nnpoc.Graph.buildNodes(this.Network));
         }
 
-        train(): void {
-            this.Trainer.train();
-            this.Network = this.Trainer.getBest();
-            this.drawNetwork();
+        train(): void {            
+            if (this.TrainStop) {                
+                this.$interval.cancel(this.TrainStop);
+                this.TrainStop = undefined;
+            }
+            else {           
+                this.TrainStop = this.$interval(() => {
+                    this.Generations++;
+                    this.Trainer.train();
+                    this.Network = this.Trainer.getBest();
+                    this.drawNetwork();
+                }, 250);
+            }
         }
 
         selectNetwork(network: nnpoc.Network): void {

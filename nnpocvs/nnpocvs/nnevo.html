@@ -12,8 +12,11 @@
         <div ng-controller="NNEvoController as vm" ng-cloak>
             <div class="row">
                 <button type="button" class="btn btn-default" ng-click="vm.train()">
-                    Train
+                    {{ vm.TrainStop ? "Stop" : "Train" }}
                 </button>
+                <span>
+                    Generations: {{vm.Generations}}
+                </span>
             </div>
             <div class="row">
                 <div class="col-sm-9">
@@ -33,15 +36,16 @@
                             <div id="graph2dBest"></div>
                         </div>
                     </div>
+                    <div class="row">
+                        <div id="graphNetwork" style="height: 300px;"></div>
+                    </div>                    
                 </div>
-                <div class="col-sm-3">
-                    <div id="graphNetwork" style="height: 300px;"></div>
+                <div class="col-sm-3">                    
                     <table class="table table-bordered">
                         <thead>
                             <tr>
                                 <th>Rank</th>
-                                <th>Score</th>
-                                <th>Network</th>                                
+                                <th>Score</th>                                                           
                             </tr>
                         </thead>
                         <tbody>
@@ -49,8 +53,7 @@
                                 ng-click="vm.selectNetwork(ns.network)"
                                 ng-class="{ 'active': ns.network == vm.Network }">
                                 <td>{{$index + 1}}</td>                                
-                                <td>{{ns.score}}</td>
-                                <td>{{ns.network.getDisplay()}}</td>
+                                <td>{{ns.score}}</td>                                
                             </tr>
                         </tbody>
                     </table>
