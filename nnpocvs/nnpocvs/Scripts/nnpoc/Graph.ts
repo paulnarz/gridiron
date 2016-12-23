@@ -1,41 +1,33 @@
 ﻿module nnpoc {
-    export class Graph {
-        static NetworkGraph = {
-            physics: {
-                enabled: false
-            },
-            layout: {
-                hierarchical: {
-                    direction: "LR",
-                    sortMethod: "directed"
-                }
-            }
-        };        
-
-        static SurfaceGraph(zMin?: number, zMax?: number): any {
-            return {
-                style: 'surface',
-                zMin: zMin,
-                zMax: zMax,
-            };
+    export class Graph {     
+        static init3d(elementId: string): any {
+            return new vis.Graph3d(document.getElementById(elementId), undefined, {
+                style: 'surface',                
+            });
         }
 
-        static OverHead(zMin?: number, zMax?: number): any {
-            return {
+        static initOverhead(elementId: string): any {
+            return new vis.Graph3d(document.getElementById(elementId), undefined, {
                 style: 'surface',
-                zMin: zMin,
-                zMax: zMax,
                 showPerspective: false,
-                cameraPosition: { horizontal: 0.0, vertical: 3.14 }
-            };
+                cameraPosition: { horizontal: 0.0, vertical: 3.14 },
+                zMin: -1,
+                zMax: 1, 
+            });
         }
 
-        static init3d(elementId: string, options: any): any {
-            return new vis.Graph3d(document.getElementById(elementId), undefined, options);
-        }
-
-        static initNetwork(elementId: string, options: any): any {
-            return new vis.Network(document.getElementById(elementId), undefined, options);
+        static initNetwork(elementId: string): any {
+            return new vis.Network(document.getElementById(elementId), undefined, {
+                physics: {
+                    enabled: false
+                },
+                layout: {
+                    hierarchical: {
+                        direction: "LR",
+                        sortMethod: "directed"
+                    }
+                }
+            });
         }
 
         static SetBounds(graph: any, zMin: number, zMax: number): void {

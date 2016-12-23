@@ -25,9 +25,9 @@
         }
 
         initGraphs(): void {
-            this.Graph3d = nnpoc.Graph.init3d("graph3d", nnpoc.Graph.SurfaceGraph(0, 1));
-            this.Graph2dNormal = nnpoc.Graph.init3d("graph2dNormal", nnpoc.Graph.OverHead(0, 1));
-            this.GraphNetwork = nnpoc.Graph.initNetwork("graphNetwork", nnpoc.Graph.NetworkGraph);
+            this.Graph3d = nnpoc.Graph.init3d("graph3d");
+            this.Graph2dNormal = nnpoc.Graph.initOverhead("graph2dNormal");
+            this.GraphNetwork = nnpoc.Graph.initNetwork("graphNetwork");
 
             this.GraphNetwork.on("select", (params) => {
                 this.onGraphNetworkSelect(params);

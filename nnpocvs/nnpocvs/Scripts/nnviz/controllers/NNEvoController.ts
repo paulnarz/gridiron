@@ -3,25 +3,25 @@
         TargetFuncString: string = "2 * x^2 + sin(y)";
         TargetFunc: nnpoc.Func2d;
         Errors: string;
-        Points = nnpoc.Points.createPoints2d(-1, 1, 3); 
-        Network: nnpoc.Network;        
+        Points = nnpoc.Points.createPoints2d(-1, 1, 3);
+        Network: nnpoc.Network;
         Trainer: nnpoc.FuncTrainer;
         TrainStop: ng.IPromise<void>;
-        Generations: number = 0;;
+        Generations: number = 0;
 
         Graph3dTarget: any;
         Graph3dNetwork: any;
         Graph2dTarget: any;
         Graph2dNetwork: any;
-        GraphNetwork: any;        
+        GraphNetwork: any;
 
         constructor(
             private $scope: ng.IScope,
             private $interval: ng.IIntervalService
-        ) {            
+        ) {
             this.TargetFunc = Parser.parse(this.TargetFuncString).toJSFunction(["x", "y"]) as nnpoc.Func2d;
-            this.Trainer = new nnpoc.FuncTrainer(this.TargetFunc, this.Points);            
-            this.Network = this.Trainer.getBest();            
+            this.Trainer = new nnpoc.FuncTrainer(this.TargetFunc, this.Points);
+            this.Network = this.Trainer.getBest();
 
             this.initGraphs();
             this.updateGraphBounds();
@@ -30,11 +30,11 @@
         }
 
         initGraphs(): void {
-            this.Graph3dTarget = nnpoc.Graph.init3d("graph3dTarget", nnpoc.Graph.SurfaceGraph());
-            this.Graph3dNetwork = nnpoc.Graph.init3d("graph3dNetwork", nnpoc.Graph.SurfaceGraph());
-            this.Graph2dTarget = nnpoc.Graph.init3d("graph2dTarget", nnpoc.Graph.OverHead(-1, 1));
-            this.Graph2dNetwork = nnpoc.Graph.init3d("graph2dNetwork", nnpoc.Graph.OverHead(-1, 1));
-            this.GraphNetwork = nnpoc.Graph.initNetwork("graphNetwork", nnpoc.Graph.NetworkGraph);            
+            this.Graph3dTarget = nnpoc.Graph.init3d("graph3dTarget");
+            this.Graph3dNetwork = nnpoc.Graph.init3d("graph3dNetwork");
+            this.Graph2dTarget = nnpoc.Graph.initOverhead("graph2dTarget");
+            this.Graph2dNetwork = nnpoc.Graph.initOverhead("graph2dNetwork");
+            this.GraphNetwork = nnpoc.Graph.initNetwork("graphNetwork");
         }
 
         updateGraphBounds(): void {
@@ -58,51 +58,51 @@
             this.GraphNetwork.setData(nnpoc.Graph.buildNodes(this.Network));
         }
 
-        train(): void {            
-            if (this.TrainStop) {                
-                this.$interval.cancel(this.TrainStop);
-                this.TrainStop = undefined;
-            }
-            else {           
-                this.Errors = null;
-                                
-                try {
-                    this.TargetFunc = Parser.parse(this.TargetFuncString).toJSFunction(["x", "y"]) as nnpoc.Func2d;
-                    this.TargetFunc(0, 0);
-                }
-                catch (ex) { 
-                    this.Errors = ex.message;                    
-                    return;
-                }                
-
-                this.Trainer.setFunc(this.TargetFunc);
-                this.updateGraphBounds();
-                this.drawTarget();
-                this.drawNetwork();
-
-                this.TrainStop = this.$interval(() => {
-                    this.Generations++;
-                    this.Trainer.train();
-                    this.Network = this.Trainer.getBest();
-                    this.drawNetwork();
-                }, 250);
-            }
-        }
-
         reset(): void {
             if (this.TrainStop) {
                 this.$interval.cancel(this.TrainStop);
                 this.TrainStop = undefined;
             }
-            this.Generations = 0;            
+            this.Generations = 0;
             this.Trainer.reset();
             this.Network = this.Trainer.getBest();
             this.drawNetwork();
         }
 
+        train(): void {
+            if (this.TrainStop) {
+                this.$interval.cancel(this.TrainStop);
+                this.TrainStop = undefined;
+                return;
+            }
+
+            this.Errors = null;
+
+            try {
+                this.TargetFunc = Parser.parse(this.TargetFuncString).toJSFunction(["x", "y"]) as nnpoc.Func2d;
+                this.TargetFunc(0, 0);
+            }
+            catch (ex) {
+                this.Errors = ex.message;
+                return;
+            }
+
+            this.Trainer.setFunc(this.TargetFunc);
+            this.updateGraphBounds();
+            this.drawTarget();
+            this.drawNetwork();
+
+            this.TrainStop = this.$interval(() => {
+                this.Generations++;
+                this.Trainer.train();
+                this.Network = this.Trainer.getBest();
+                this.drawNetwork();
+            }, 250);
+        }
+
         selectNetwork(network: nnpoc.Network): void {
             this.Network = network;
-            this.drawNetwork();            
+            this.drawNetwork();
         }
     }
 

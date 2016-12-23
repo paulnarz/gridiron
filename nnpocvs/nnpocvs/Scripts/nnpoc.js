@@ -142,27 +142,32 @@ var nnpoc;
     var Graph = (function () {
         function Graph() {
         }
-        Graph.SurfaceGraph = function (zMin, zMax) {
-            return {
+        Graph.init3d = function (elementId) {
+            return new vis.Graph3d(document.getElementById(elementId), undefined, {
                 style: 'surface',
-                zMin: zMin,
-                zMax: zMax,
-            };
+            });
         };
-        Graph.OverHead = function (zMin, zMax) {
-            return {
+        Graph.initOverhead = function (elementId) {
+            return new vis.Graph3d(document.getElementById(elementId), undefined, {
                 style: 'surface',
-                zMin: zMin,
-                zMax: zMax,
                 showPerspective: false,
-                cameraPosition: { horizontal: 0.0, vertical: 3.14 }
-            };
+                cameraPosition: { horizontal: 0.0, vertical: 3.14 },
+                zMin: -1,
+                zMax: 1,
+            });
         };
-        Graph.init3d = function (elementId, options) {
-            return new vis.Graph3d(document.getElementById(elementId), undefined, options);
-        };
-        Graph.initNetwork = function (elementId, options) {
-            return new vis.Network(document.getElementById(elementId), undefined, options);
+        Graph.initNetwork = function (elementId) {
+            return new vis.Network(document.getElementById(elementId), undefined, {
+                physics: {
+                    enabled: false
+                },
+                layout: {
+                    hierarchical: {
+                        direction: "LR",
+                        sortMethod: "directed"
+                    }
+                }
+            });
         };
         Graph.SetBounds = function (graph, zMin, zMax) {
             if (zMax - zMin < 1) {
@@ -259,17 +264,6 @@ var nnpoc;
                 nodes: nodes,
                 edges: edges
             };
-        };
-        Graph.NetworkGraph = {
-            physics: {
-                enabled: false
-            },
-            layout: {
-                hierarchical: {
-                    direction: "LR",
-                    sortMethod: "directed"
-                }
-            }
         };
         return Graph;
     }());
@@ -563,13 +557,12 @@ var nnviz;
             this.drawTarget();
             this.drawNetwork();
         }
-        ;
         NNEvoController.prototype.initGraphs = function () {
-            this.Graph3dTarget = nnpoc.Graph.init3d("graph3dTarget", nnpoc.Graph.SurfaceGraph());
-            this.Graph3dNetwork = nnpoc.Graph.init3d("graph3dNetwork", nnpoc.Graph.SurfaceGraph());
-            this.Graph2dTarget = nnpoc.Graph.init3d("graph2dTarget", nnpoc.Graph.OverHead(-1, 1));
-            this.Graph2dNetwork = nnpoc.Graph.init3d("graph2dNetwork", nnpoc.Graph.OverHead(-1, 1));
-            this.GraphNetwork = nnpoc.Graph.initNetwork("graphNetwork", nnpoc.Graph.NetworkGraph);
+            this.Graph3dTarget = nnpoc.Graph.init3d("graph3dTarget");
+            this.Graph3dNetwork = nnpoc.Graph.init3d("graph3dNetwork");
+            this.Graph2dTarget = nnpoc.Graph.initOverhead("graph2dTarget");
+            this.Graph2dNetwork = nnpoc.Graph.initOverhead("graph2dNetwork");
+            this.GraphNetwork = nnpoc.Graph.initNetwork("graphNetwork");
         };
         NNEvoController.prototype.updateGraphBounds = function () {
             nnpoc.Graph.SetBounds(this.Graph3dTarget, this.Trainer.FuncMin, this.Trainer.FuncMax);
@@ -590,34 +583,6 @@ var nnviz;
             this.Network.calculate([0, 0]);
             this.GraphNetwork.setData(nnpoc.Graph.buildNodes(this.Network));
         };
-        NNEvoController.prototype.train = function () {
-            var _this = this;
-            if (this.TrainStop) {
-                this.$interval.cancel(this.TrainStop);
-                this.TrainStop = undefined;
-            }
-            else {
-                this.Errors = null;
-                try {
-                    this.TargetFunc = Parser.parse(this.TargetFuncString).toJSFunction(["x", "y"]);
-                    this.TargetFunc(0, 0);
-                }
-                catch (ex) {
-                    this.Errors = ex.message;
-                    return;
-                }
-                this.Trainer.setFunc(this.TargetFunc);
-                this.updateGraphBounds();
-                this.drawTarget();
-                this.drawNetwork();
-                this.TrainStop = this.$interval(function () {
-                    _this.Generations++;
-                    _this.Trainer.train();
-                    _this.Network = _this.Trainer.getBest();
-                    _this.drawNetwork();
-                }, 250);
-            }
-        };
         NNEvoController.prototype.reset = function () {
             if (this.TrainStop) {
                 this.$interval.cancel(this.TrainStop);
@@ -627,6 +592,33 @@ var nnviz;
             this.Trainer.reset();
             this.Network = this.Trainer.getBest();
             this.drawNetwork();
+        };
+        NNEvoController.prototype.train = function () {
+            var _this = this;
+            if (this.TrainStop) {
+                this.$interval.cancel(this.TrainStop);
+                this.TrainStop = undefined;
+                return;
+            }
+            this.Errors = null;
+            try {
+                this.TargetFunc = Parser.parse(this.TargetFuncString).toJSFunction(["x", "y"]);
+                this.TargetFunc(0, 0);
+            }
+            catch (ex) {
+                this.Errors = ex.message;
+                return;
+            }
+            this.Trainer.setFunc(this.TargetFunc);
+            this.updateGraphBounds();
+            this.drawTarget();
+            this.drawNetwork();
+            this.TrainStop = this.$interval(function () {
+                _this.Generations++;
+                _this.Trainer.train();
+                _this.Network = _this.Trainer.getBest();
+                _this.drawNetwork();
+            }, 250);
         };
         NNEvoController.prototype.selectNetwork = function (network) {
             this.Network = network;
@@ -674,9 +666,9 @@ var nnviz;
         }
         NNInteractController.prototype.initGraphs = function () {
             var _this = this;
-            this.Graph3d = nnpoc.Graph.init3d("graph3d", nnpoc.Graph.SurfaceGraph(0, 1));
-            this.Graph2dNormal = nnpoc.Graph.init3d("graph2dNormal", nnpoc.Graph.OverHead(0, 1));
-            this.GraphNetwork = nnpoc.Graph.initNetwork("graphNetwork", nnpoc.Graph.NetworkGraph);
+            this.Graph3d = nnpoc.Graph.init3d("graph3d");
+            this.Graph2dNormal = nnpoc.Graph.initOverhead("graph2dNormal");
+            this.GraphNetwork = nnpoc.Graph.initNetwork("graphNetwork");
             this.GraphNetwork.on("select", function (params) {
                 _this.onGraphNetworkSelect(params);
             });
