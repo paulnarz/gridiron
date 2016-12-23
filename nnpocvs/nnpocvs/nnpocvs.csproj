@@ -50,6 +50,7 @@
     <Content Include="Scripts\jquery-1.9.1.min.js" />
     <Content Include="Scripts\mousewheel.js" />
     <Content Include="Scripts\nnpoc.js" />
+    <Content Include="Scripts\parser.js" />
     <Content Include="web.config" />
   </ItemGroup>
   <ItemGroup>
@@ -89,6 +90,7 @@
     <TypeScriptCompile Include="Scripts\typings\angularjs\angular-sanitize.d.ts" />
     <TypeScriptCompile Include="Scripts\typings\angularjs\angular.d.ts" />
     <TypeScriptCompile Include="Scripts\typings\jquery\jquery.d.ts" />
+    <TypeScriptCompile Include="Scripts\typings\parser\parser.d.ts" />
     <TypeScriptCompile Include="Scripts\typings\vis\vis.d.ts" />
   </ItemGroup>
   <PropertyGroup>

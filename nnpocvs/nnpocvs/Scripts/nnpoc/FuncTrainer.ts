@@ -10,10 +10,9 @@
             score: number
         }[];
 
-        constructor(targetFunc: Func2d, points: Point2d[]) {
-            this.TargetFunc = targetFunc;            
+        constructor(targetFunc: Func2d, points: Point2d[]) {            
             this.Points = points;
-            this.initFunc();
+            this.setFunc(targetFunc);
 
             this.NEvo = new Neuroevolution({
                 population: 50,
@@ -32,7 +31,14 @@
             this.train();
         }
 
-        initFunc(): void {
+        reset(): void {
+            this.NEvo.reset();
+            this.train();
+        }
+
+        setFunc(targetFunc: Func2d): void {
+            this.TargetFunc = targetFunc;
+
             this.FuncMin = Infinity;
             this.FuncMax = -Infinity;
 

@@ -38,6 +38,18 @@
             return new vis.Network(document.getElementById(elementId), undefined, options);
         }
 
+        static SetBounds(graph: any, zMin: number, zMax: number): void {
+            if (zMax - zMin < 1) {
+                zMax += 0.5;
+                zMin -= 0.5;
+            }
+
+            graph.setOptions({                    
+                zMin: zMin,
+                zMax: zMax,                
+            });
+        }
+
         static calcNetworkData(network: Network, points: Point2d[]): Point3d[] {
             var data = [];
 

@@ -15,6 +15,10 @@
         constructor(private options: NeuroevolutionOptions) {
         }
 
+        reset(): void {
+            this.genomes = undefined;
+        }
+
         nextGeneration(): Network[] {
             if (!this.genomes)
                 return this.generateFirstGeneration();
