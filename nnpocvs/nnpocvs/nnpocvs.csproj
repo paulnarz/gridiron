@@ -29,6 +29,7 @@
     <Content Include="Content\site.css" />
     <Content Include="fonts\glyphicons-halflings-regular.svg" />
     <Content Include="index.html" />
+    <Content Include="lunar.html" />
     <Content Include="nnevo.html" />
     <Content Include="nninteractive.html" />
     <Content Include="Scripts\angular-mocks.js" />
@@ -51,6 +52,8 @@
     <Content Include="Scripts\mousewheel.js" />
     <Content Include="Scripts\nnpoc.js" />
     <Content Include="Scripts\parser.js" />
+    <Content Include="Scripts\phaser.js" />
+    <Content Include="Scripts\phaser.min.js" />
     <Content Include="web.config" />
   </ItemGroup>
   <ItemGroup>
@@ -58,6 +61,7 @@
     <Content Include="packages.config" />
     <Content Include="Scripts\jquery-1.9.1.min.map" />
     <Content Include="Scripts\nnpoc.js.map" />
+    <Content Include="Scripts\phaser.map" />
     <None Include="web.Debug.config">
       <DependentUpon>web.config</DependentUpon>
     </None>
@@ -66,6 +70,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <TypeScriptCompile Include="Scripts\nnlunar\app.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\Color.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\FuncTrainer.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\Genome.ts" />
@@ -91,8 +96,12 @@
     <TypeScriptCompile Include="Scripts\typings\angularjs\angular.d.ts" />
     <TypeScriptCompile Include="Scripts\typings\jquery\jquery.d.ts" />
     <TypeScriptCompile Include="Scripts\typings\parser\parser.d.ts" />
+    <TypeScriptCompile Include="Scripts\typings\phaser\p2.d.ts" />
+    <TypeScriptCompile Include="Scripts\typings\phaser\phaser.d.ts" />
+    <TypeScriptCompile Include="Scripts\typings\phaser\pixi.d.ts" />
     <TypeScriptCompile Include="Scripts\typings\vis\vis.d.ts" />
   </ItemGroup>
+  <ItemGroup />
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">12.0</VisualStudioVersion>
   </PropertyGroup>

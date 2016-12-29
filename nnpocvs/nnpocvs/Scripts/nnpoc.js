@@ -1,3 +1,22 @@
+var nnlunar;
+(function (nnlunar) {
+    var LunarGame = (function () {
+        function LunarGame() {
+            this.game = new Phaser.Game(800, 600, Phaser.AUTO, "content", {
+                preload: this.preload,
+                create: this.create
+            });
+        }
+        LunarGame.prototype.preload = function () {
+            console.log("preload");
+        };
+        LunarGame.prototype.create = function () {
+            console.log("create");
+        };
+        return LunarGame;
+    }());
+    nnlunar.LunarGame = LunarGame;
+})(nnlunar || (nnlunar = {}));
 var nnpoc;
 (function (nnpoc) {
     var Color = (function () {
