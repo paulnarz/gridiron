@@ -70,7 +70,11 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <TypeScriptCompile Include="Scripts\nnlunar\app.ts" />
+    <TypeScriptCompile Include="Scripts\nnlunar\Lander.ts" />
+    <TypeScriptCompile Include="Scripts\nnlunar\nnlunar.ts" />
+    <TypeScriptCompile Include="Scripts\nnlunar\LunarGameRaw.ts" />
+    <TypeScriptCompile Include="Scripts\nnlunar\LunarGamePhaser.ts" />
+    <TypeScriptCompile Include="Scripts\nnlunar\Vector2.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\Color.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\FuncTrainer.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\Genome.ts" />

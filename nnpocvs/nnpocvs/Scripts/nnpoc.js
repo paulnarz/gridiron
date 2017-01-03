@@ -1,21 +1,437 @@
 var nnlunar;
 (function (nnlunar) {
-    var LunarGame = (function () {
-        function LunarGame() {
+    var Lander = (function () {
+        function Lander() {
+            this.vel = new nnlunar.Vector2(0, 0);
+            this.pos = new nnlunar.Vector2(0, 0);
+            this.bottomLeft = new nnlunar.Vector2(0, 0);
+            this.bottomRight = new nnlunar.Vector2(0, 0);
+            this.thrustVec = new nnlunar.Vector2(0, 0);
+            this.gravity = 0.0005;
+            this.thrustAcceleration = 0.0015;
+            this.thrustBuild = 0;
+            this.topSpeed = 0.35;
+            this.drag = 0.9997;
+            this.bouncing = 0;
+            this.exploding = false;
+            this.targetRotation = 0;
+            this.lastRotationTime = 0;
+            this.counter = 0;
+            this.abortCounter = -1;
+            this.rotation = 0;
+            this.thrusting = 0;
+            this.altitude = 0;
+            this.active = true;
+            this.fuel = 0;
+            this.scale = 0.8;
+            this.left = 0;
+            this.right = 0;
+            this.bottom = 0;
+            this.top = 0;
+            this.color = 'white';
+            this.shapes = [];
+            this.shapePos = [];
+            this.shapeVels = [];
+            this.thrustLevel = 0;
+            this.defineShape();
+        }
+        Lander.prototype.reset = function () {
+            this.abortCounter = -1;
+            this.lastAbort = Date.now();
+            this.vel.reset(0, 0);
+            this.pos.reset(0, 0);
+            this.rotation = this.targetRotation = -90;
+            this.scale = 1;
+            this.thrustBuild = 0;
+            this.bouncing = 0;
+            this.active = true;
+            this.exploding = false;
+            for (var i = 0; i < this.shapePos.length; i++) {
+                this.shapePos[i].reset(0, 0);
+            }
+            this.thrusting = 0;
+        };
+        Lander.prototype.rotate = function (direction) {
+            var now = new Date().getTime();
+            if (now - this.lastRotationTime > 80) {
+                this.targetRotation += direction * 15;
+                this.targetRotation = nnlunar.clamp(this.targetRotation, -90, 90);
+                this.lastRotationTime = now;
+            }
+        };
+        Lander.prototype.setRotation = function (angle) {
+            this.targetRotation = Math.round(nnlunar.clamp(angle, -90, 90) / 10) * 10;
+        };
+        Lander.prototype.thrust = function (power) {
+            this.thrusting = power;
+        };
+        Lander.prototype.abort = function () {
+            var now = Date.now();
+            if (now - this.lastAbort > 10000) {
+                this.abortCounter = 100;
+                this.lastAbort = now;
+            }
+        };
+        Lander.prototype.update = function () {
+            this.counter++;
+            this.rotation += (this.targetRotation - this.rotation) * 0.3;
+            if (Math.abs(this.rotation - this.targetRotation) < 0.1)
+                this.rotation = this.targetRotation;
+            if (this.exploding) {
+                for (var i = 0; i < this.shapePos.length; i++) {
+                    this.shapePos[i].plusEq(this.shapeVels[i]);
+                }
+            }
+            if (this.active) {
+                if (this.abortCounter > -1) {
+                    this.targetRotation = 0;
+                    if (this.fuel > 0)
+                        this.thrustBuild = 3;
+                    this.abortCounter--;
+                    this.fuel -= 1;
+                }
+                if (this.fuel <= 0)
+                    this.thrusting = 0;
+                this.thrustBuild += ((this.thrusting - this.thrustBuild) * 0.2);
+                if (this.thrustBuild > 0) {
+                    this.thrustVec.reset(0, -this.thrustAcceleration * this.thrustBuild);
+                    this.thrustVec.rotate(this.rotation, false);
+                    this.vel.plusEq(this.thrustVec);
+                    this.fuel -= (0.2 * this.thrustBuild);
+                }
+                this.pos.plusEq(this.vel);
+                this.vel.x *= this.drag;
+                this.vel.y += this.gravity;
+                if (this.vel.y > this.topSpeed)
+                    this.vel.y = this.topSpeed;
+                else if (this.vel.y < -this.topSpeed)
+                    this.vel.y = -this.topSpeed;
+                this.left = this.pos.x - (10 * this.scale);
+                this.right = this.pos.x + (10 * this.scale);
+                this.bottom = this.pos.y + (14 * this.scale);
+                this.top = this.pos.y - (5 * this.scale);
+                this.bottomLeft.reset(this.left, this.bottom);
+                this.bottomRight.reset(this.right, this.bottom);
+            }
+            else if (this.bouncing > 0) {
+                this.pos.y += Math.sin(this.bouncing) * 0.07;
+                this.bouncing -= Math.PI / 20;
+            }
+            if (this.fuel < 0)
+                this.fuel = 0;
+            this.thrustLevel = this.thrustBuild;
+        };
+        Lander.prototype.crash = function () {
+            this.rotation = this.targetRotation = 0;
+            this.active = false;
+            this.exploding = true;
+            this.thrustBuild = 0;
+        };
+        Lander.prototype.land = function () {
+            this.active = false;
+            this.thrustBuild = 0;
+        };
+        Lander.prototype.makeBounce = function () {
+            this.bouncing = Math.PI * 2;
+        };
+        Lander.prototype.defineShape = function () {
+            var m = 'm', l = 'l', r = 'r', cp = 'cp';
+            var min = 2.6, max = 5;
+            var shape = [];
+            shape.push(m, min, -max);
+            shape.push(l, max, -min);
+            shape.push(l, max, min);
+            shape.push(l, min, max);
+            shape.push(l, -min, max);
+            shape.push(l, -max, min);
+            shape.push(l, -max, -min);
+            shape.push(l, -min, -max);
+            shape.push(cp);
+            this.shapes.push(shape);
+            this.shapeVels.push(new nnlunar.Vector2(1, -2.5));
+            this.shapes.push([r, -6, 5, 12, 2]);
+            this.shapeVels.push(new nnlunar.Vector2(2, -1.5));
+            shape = [];
+            shape.push(m, -5, 7.5);
+            shape.push(l, -9, 13);
+            shape.push(m, -11, 13);
+            shape.push(l, -7, 13);
+            this.shapes.push(shape);
+            this.shapeVels.push(new nnlunar.Vector2(0, -3));
+            shape = [];
+            shape.push(m, 5, 7.5);
+            shape.push(l, 9, 13);
+            shape.push(m, 11, 13);
+            shape.push(l, 7, 13);
+            this.shapes.push(shape);
+            this.shapeVels.push(new nnlunar.Vector2(3, -1));
+            shape = [];
+            shape.push(m, -3, 7.5);
+            shape.push(l, -5, 12);
+            shape.push(l, -4.5, 13);
+            this.shapes.push(shape);
+            this.shapeVels.push(new nnlunar.Vector2(1, -1));
+            shape = [];
+            shape.push(m, 3, 7.5);
+            shape.push(l, 5, 12);
+            shape.push(l, 4.5, 13);
+            this.shapes.push(shape);
+            this.shapeVels.push(new nnlunar.Vector2(2.5, -1));
+            shape = [];
+            shape.push(m, 4, 11);
+            shape.push(l, -4, 11);
+            this.shapes.push(shape);
+            this.shapeVels.push(new nnlunar.Vector2(2, -0.5));
+            for (var i = 0; i < this.shapes.length; i++) {
+                this.shapePos.push(new nnlunar.Vector2(1, -0.5));
+            }
+        };
+        Lander.prototype.render = function (c, scale) {
+            c.save();
+            c.translate(this.pos.x, this.pos.y);
+            c.scale(this.scale, this.scale);
+            c.lineWidth = 1 / (this.scale * scale);
+            c.rotate(this.rotation * nnlunar.Vector2.TO_RADIANS);
+            c.strokeStyle = this.color;
+            c.beginPath();
+            this.renderShapes(c);
+            if ((this.thrustBuild > 0) && (this.active)) {
+                c.lineTo(0, 11 + (Math.min(this.thrustBuild, 1) * 20 * ((((this.counter >> 1) % 3) * 0.2) + 1)));
+                c.closePath();
+            }
+            c.stroke();
+            c.restore();
+        };
+        Lander.prototype.renderShapes = function (c) {
+            var shapes = this.shapes, shapePos = this.shapePos, shapeVels = this.shapeVels;
+            for (var i = 0; i < shapes.length; i++) {
+                var s = shapes[i].slice(0);
+                c.save();
+                c.translate(shapePos[i].x, shapePos[i].y);
+                while (s.length > 0) {
+                    var cmd = s.shift();
+                    switch (cmd) {
+                        case 'm':
+                            c.moveTo(s.shift(), s.shift());
+                            break;
+                        case 'l':
+                            c.lineTo(s.shift(), s.shift());
+                            break;
+                        case 'cp':
+                            c.closePath();
+                            break;
+                        case 'r':
+                            c.rect(s.shift(), s.shift(), s.shift(), s.shift());
+                            break;
+                        default:
+                            console.log('bad command!');
+                    }
+                }
+                c.restore();
+            }
+        };
+        return Lander;
+    }());
+    nnlunar.Lander = Lander;
+})(nnlunar || (nnlunar = {}));
+var nnlunar;
+(function (nnlunar) {
+    function clamp(value, min, max) {
+        return (value < min) ? min : (value > max) ? max : value;
+    }
+    nnlunar.clamp = clamp;
+})(nnlunar || (nnlunar = {}));
+var nnlunar;
+(function (nnlunar) {
+    var LunarGameRaw = (function () {
+        function LunarGameRaw() {
+            var _this = this;
+            this.SCREEN_WIDTH = 800;
+            this.SCREEN_HEIGHT = 800;
+            this.view = {
+                x: 0,
+                y: 0,
+                scale: 1,
+                left: 0,
+                right: 0,
+                top: 0,
+                bottom: 0
+            };
+            this.loop = function () {
+                requestAnimationFrame(_this.loop);
+                _this.lander.setRotation(0);
+                _this.lander.thrust(1);
+                _this.lander.update();
+                _this.render();
+            };
+            this.canvas = document.createElement('canvas');
+            this.context = this.canvas.getContext('2d');
+            document.body.appendChild(this.canvas);
+            this.canvas.width = this.SCREEN_WIDTH;
+            this.canvas.height = this.SCREEN_HEIGHT;
+            this.canvas.style.backgroundColor = "#000000";
+            this.lander = new nnlunar.Lander();
+            this.lander.reset();
+            this.lander.pos.x = this.SCREEN_WIDTH / 2;
+            this.lander.pos.y = this.SCREEN_HEIGHT / 2;
+            this.lander.fuel = 100;
+            this.loop();
+        }
+        LunarGameRaw.prototype.render = function () {
+            var c = this.context;
+            var view = this.view;
+            c.clearRect(0, 0, this.SCREEN_WIDTH, this.SCREEN_HEIGHT);
+            c.save();
+            c.translate(view.x, view.y);
+            c.scale(view.scale, view.scale);
+            this.lander.render(c, view.scale);
+            c.restore();
+        };
+        return LunarGameRaw;
+    }());
+    nnlunar.LunarGameRaw = LunarGameRaw;
+})(nnlunar || (nnlunar = {}));
+var nnlunar;
+(function (nnlunar) {
+    var LunarGamePhaser = (function () {
+        function LunarGamePhaser() {
             this.game = new Phaser.Game(800, 600, Phaser.AUTO, "content", {
                 preload: this.preload,
                 create: this.create
             });
         }
-        LunarGame.prototype.preload = function () {
+        LunarGamePhaser.prototype.preload = function () {
             console.log("preload");
         };
-        LunarGame.prototype.create = function () {
+        LunarGamePhaser.prototype.create = function () {
             console.log("create");
         };
-        return LunarGame;
+        return LunarGamePhaser;
     }());
-    nnlunar.LunarGame = LunarGame;
+    nnlunar.LunarGamePhaser = LunarGamePhaser;
+})(nnlunar || (nnlunar = {}));
+var nnlunar;
+(function (nnlunar) {
+    var Vector2 = (function () {
+        function Vector2(x, y) {
+            this.x = x || 0;
+            this.y = y || 0;
+        }
+        Vector2.prototype.reset = function (x, y) {
+            this.x = x;
+            this.y = y;
+            return this;
+        };
+        Vector2.prototype.toString = function (decPlaces) {
+            decPlaces = decPlaces || 3;
+            var scalar = Math.pow(10, decPlaces);
+            return "[" + Math.round(this.x * scalar) / scalar + ", " + Math.round(this.y * scalar) / scalar + "]";
+        };
+        Vector2.prototype.clone = function () {
+            return new Vector2(this.x, this.y);
+        };
+        Vector2.prototype.copyTo = function (v) {
+            v.x = this.x;
+            v.y = this.y;
+        };
+        Vector2.prototype.copyFrom = function (v) {
+            this.x = v.x;
+            this.y = v.y;
+        };
+        Vector2.prototype.magnitude = function () {
+            return Math.sqrt((this.x * this.x) + (this.y * this.y));
+        };
+        Vector2.prototype.magnitudeSquared = function () {
+            return (this.x * this.x) + (this.y * this.y);
+        };
+        Vector2.prototype.normalise = function () {
+            var m = this.magnitude();
+            this.x = this.x / m;
+            this.y = this.y / m;
+            return this;
+        };
+        Vector2.prototype.reverse = function () {
+            this.x = -this.x;
+            this.y = -this.y;
+            return this;
+        };
+        Vector2.prototype.plusEq = function (v) {
+            this.x += v.x;
+            this.y += v.y;
+            return this;
+        };
+        Vector2.prototype.plusNew = function (v) {
+            return new Vector2(this.x + v.x, this.y + v.y);
+        };
+        Vector2.prototype.minusEq = function (v) {
+            this.x -= v.x;
+            this.y -= v.y;
+            return this;
+        };
+        Vector2.prototype.minusNew = function (v) {
+            return new Vector2(this.x - v.x, this.y - v.y);
+        };
+        Vector2.prototype.multiplyEq = function (scalar) {
+            this.x *= scalar;
+            this.y *= scalar;
+            return this;
+        };
+        Vector2.prototype.multiplyNew = function (scalar) {
+            var returnvec = this.clone();
+            return returnvec.multiplyEq(scalar);
+        };
+        Vector2.prototype.divideEq = function (scalar) {
+            this.x /= scalar;
+            this.y /= scalar;
+            return this;
+        };
+        Vector2.prototype.divideNew = function (scalar) {
+            var returnvec = this.clone();
+            return returnvec.divideEq(scalar);
+        };
+        Vector2.prototype.dot = function (v) {
+            return (this.x * v.x) + (this.y * v.y);
+        };
+        Vector2.prototype.angle = function (useRadians) {
+            return Math.atan2(this.y, this.x) * (useRadians ? 1 : Vector2.TO_DEGREES);
+        };
+        Vector2.prototype.rotate = function (angle, useRadians) {
+            var cosRY = Math.cos(angle * (useRadians ? 1 : Vector2.TO_RADIANS));
+            var sinRY = Math.sin(angle * (useRadians ? 1 : Vector2.TO_RADIANS));
+            Vector2.temp.copyFrom(this);
+            this.x = (Vector2.temp.x * cosRY) - (Vector2.temp.y * sinRY);
+            this.y = (Vector2.temp.x * sinRY) + (Vector2.temp.y * cosRY);
+            return this;
+        };
+        Vector2.prototype.equals = function (v) {
+            return ((this.x == v.x) && (this.y == v.x));
+        };
+        Vector2.prototype.isCloseTo = function (v, tolerance) {
+            if (this.equals(v))
+                return true;
+            Vector2.temp.copyFrom(this);
+            Vector2.temp.minusEq(v);
+            return (Vector2.temp.magnitudeSquared() < tolerance * tolerance);
+        };
+        Vector2.prototype.rotateAroundPoint = function (point, angle, useRadians) {
+            Vector2.temp.copyFrom(this);
+            Vector2.temp.minusEq(point);
+            Vector2.temp.rotate(angle, useRadians);
+            Vector2.temp.plusEq(point);
+            this.copyFrom(Vector2.temp);
+        };
+        Vector2.prototype.isMagLessThan = function (distance) {
+            return (this.magnitudeSquared() < distance * distance);
+        };
+        Vector2.prototype.isMagGreaterThan = function (distance) {
+            return (this.magnitudeSquared() > distance * distance);
+        };
+        Vector2.TO_DEGREES = 180 / Math.PI;
+        Vector2.TO_RADIANS = Math.PI / 180;
+        Vector2.temp = new Vector2(0, 0);
+        return Vector2;
+    }());
+    nnlunar.Vector2 = Vector2;
 })(nnlunar || (nnlunar = {}));
 var nnpoc;
 (function (nnpoc) {
@@ -75,15 +491,6 @@ var nnpoc;
         return Color;
     }());
     nnpoc.Color = Color;
-})(nnpoc || (nnpoc = {}));
-var nnpoc;
-(function (nnpoc) {
-    var Edge = (function () {
-        function Edge() {
-        }
-        return Edge;
-    }());
-    nnpoc.Edge = Edge;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
 (function (nnpoc) {
@@ -419,6 +826,15 @@ var nnpoc;
         return Network;
     }());
     nnpoc.Network = Network;
+})(nnpoc || (nnpoc = {}));
+var nnpoc;
+(function (nnpoc) {
+    var Edge = (function () {
+        function Edge() {
+        }
+        return Edge;
+    }());
+    nnpoc.Edge = Edge;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
 (function (nnpoc) {

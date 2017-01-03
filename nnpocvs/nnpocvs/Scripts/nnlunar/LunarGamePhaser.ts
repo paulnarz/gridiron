@@ -1,5 +1,5 @@
 ﻿module nnlunar {
-    export class LunarGame {
+    export class LunarGamePhaser {
         game: Phaser.Game;
 
         constructor() {
