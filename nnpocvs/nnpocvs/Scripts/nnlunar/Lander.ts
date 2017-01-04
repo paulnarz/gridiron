@@ -12,6 +12,7 @@
         drag = 0.9997;
         bouncing = 0;
         exploding = false;
+        explodingCounter = 0;
         targetRotation = 0;
         lastRotationTime = 0;
         counter = 0;        
@@ -41,6 +42,7 @@
             this.bouncing = 0;
             this.active = true;
             this.exploding = false;
+            this.explodingCounter = 0;
             this.thrusting = 0;
             this.color = 'white';
         }
@@ -64,9 +66,7 @@
             if (Math.abs(this.rotation - this.targetRotation) < 0.1)
                 this.rotation = this.targetRotation;
             if (this.exploding) {
-                //for (var i = 0; i < this.shapePos.length; i++) {
-                //    this.shapePos[i].plusEq(this.shapeVels[i]);
-                //}
+                this.explodingCounter++;                
             }
             if (this.active) {
                 if (this.fuel <= 0)
@@ -105,6 +105,7 @@
             //this.rotation = this.targetRotation = 0;
             this.active = false;
             this.exploding = true;
+            this.explodingCounter = 0;
             this.thrustBuild = 0;
             this.color = 'red';
         }
@@ -122,8 +123,7 @@
     }
 
     export class LanderRenderer {
-        shapes = [];
-        shapePos = []
+        shapes = [];        
         shapeVels = [];
 
         constructor() {
@@ -182,9 +182,6 @@
             shape.push(l, -4, 11);
             this.shapes.push(shape);
             this.shapeVels.push(new Vector2(2, -0.5));
-            for (var i = 0; i < this.shapes.length; i++) {
-                this.shapePos.push(new Vector2(0, 0));
-            }
         }
 
         render(l: Lander, c: CanvasRenderingContext2D, scale: number): void {
@@ -194,8 +191,8 @@
             c.lineWidth = 1 / (l.scale * scale);
             c.rotate(l.rotation * Vector2.TO_RADIANS);
             c.strokeStyle = l.color;
-            c.beginPath();
-            this.renderShapes(c);
+            c.beginPath();            
+            this.renderShapes(c, l.explodingCounter);
             if ((l.thrustBuild > 0) && (l.active)) {
                 c.lineTo(0, 11 + (Math.min(l.thrustBuild, 1) * 20 * ((((l.counter >> 1) % 3) * 0.2) + 1)));
                 c.closePath();
@@ -204,14 +201,13 @@
             c.restore();
         }
 
-        renderShapes(c: CanvasRenderingContext2D): void {
-            var shapes = this.shapes
-                , shapePos = this.shapePos
+        renderShapes(c: CanvasRenderingContext2D, timeOffset: number): void {
+            var shapes = this.shapes                
                 , shapeVels = this.shapeVels;
             for (var i = 0; i < shapes.length; i++) {
-                var s = shapes[i].slice(0);
+                var s = shapes[i].slice(0);                
                 c.save();
-                c.translate(shapePos[i].x, shapePos[i].y);
+                c.translate(shapeVels[i].x * timeOffset, shapeVels[i].y * timeOffset);
                 while (s.length > 0) {
                     var cmd = s.shift();
                     switch (cmd) {

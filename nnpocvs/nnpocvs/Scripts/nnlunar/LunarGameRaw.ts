@@ -53,36 +53,45 @@
         loop = (): void => {
             requestAnimationFrame(this.loop);
 
+            for (let j = 0; j < this.simulationMul; j++) {
+                this.update();
+            }
+
+            this.render();
+        }
+
+        update(): void {
             for (let i = 0, len = this.landers.length; i < len; i++) {
                 var l = this.landers[i];
 
                 if (l.active) {
-                    if (Math.random() < 0.01)
+                    if (Math.random() < 0.001)
                         l.thrust(1);
-                    if (Math.random() < 0.01)
+                    if (Math.random() < 0.001)
                         l.rotate(1);
-                    if (Math.random() < 0.01)
+                    if (Math.random() < 0.001)
                         l.rotate(-1);
+                }
 
-                    for (let j = 0; j < this.simulationMul; j++) {
-                        l.update();
-                        //check collision
-                        if (l.bottom >= this.target.y) {
-                            if ((l.left > this.target.left) && (l.right < this.target.right)) {
-                                if ((Math.abs(l.rotation) <= this.target.minAng) && (l.vel.y <= this.target.minVel)) {
-                                    l.land();
-                                } else {
-                                    l.crash();
-                                }
-                            } else {
+                l.update();
+
+                if (l.active) {
+                    //check collision
+                    if (l.bottom >= this.target.y) {
+                        if ((l.left > this.target.left) && (l.right < this.target.right)) {
+                            if ((Math.abs(l.rotation) <= this.target.minAng) && (l.vel.y <= this.target.minVel)) {
+                                l.land();
+                            }
+                            else {
                                 l.crash();
                             }
+                        }
+                        else {
+                            l.crash();
                         }
                     }
                 }
             }
-
-            this.render();
         }
 
         render(): void {
