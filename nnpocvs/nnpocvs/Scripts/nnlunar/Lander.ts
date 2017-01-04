@@ -14,9 +14,7 @@
         exploding = false;
         targetRotation = 0;
         lastRotationTime = 0;
-        counter = 0;
-        abortCounter = -1;
-        lastAbort: number;
+        counter = 0;        
         rotation = 0;
         thrusting = 0;
         altitude = 0;
@@ -27,56 +25,37 @@
         right = 0;
         bottom = 0;
         top = 0;
-        color = 'white';
-        shapes = [];
-        shapePos = []
-        shapeVels = [];
+        color = 'white';        
         thrustLevel = 0;
 
         constructor() {
-            this.defineShape();
+            
         }
 
-        reset(): void {
-            this.abortCounter = -1;
-            this.lastAbort = Date.now();
+        reset(): void {            
             this.vel.reset(0, 0);
             this.pos.reset(0, 0);
-            this.rotation = this.targetRotation = -90;
+            this.rotation = this.targetRotation = 0;
             this.scale = 1;
             this.thrustBuild = 0;
             this.bouncing = 0;
             this.active = true;
             this.exploding = false;
-            for (var i = 0; i < this.shapePos.length; i++) {
-                this.shapePos[i].reset(0, 0);
-            }
             this.thrusting = 0;
-        }        
+            this.color = 'white';
+        }
 
         rotate(direction: number): void {
-            var now = new Date().getTime();
-            if (now - this.lastRotationTime > 80) {
-                this.targetRotation += direction * 15;
-                this.targetRotation = clamp(this.targetRotation, -90, 90);
-                this.lastRotationTime = now;
-            }
+            this.targetRotation += direction * 15;
+            this.targetRotation = clamp(this.targetRotation, -90, 90);
         }
-            
+
         setRotation(angle: number): void {
             this.targetRotation = Math.round(clamp(angle, -90, 90) / 10) * 10;
         }
 
         thrust(power: number): void {
             this.thrusting = power;
-        }
-        
-        abort(): void {
-            var now = Date.now();
-            if (now - this.lastAbort > 10000) {
-                this.abortCounter = 100;
-                this.lastAbort = now;
-            }
         }
 
         update(): void {
@@ -85,18 +64,11 @@
             if (Math.abs(this.rotation - this.targetRotation) < 0.1)
                 this.rotation = this.targetRotation;
             if (this.exploding) {
-                for (var i = 0; i < this.shapePos.length; i++) {
-                    this.shapePos[i].plusEq(this.shapeVels[i]);
-                }
-            }                
+                //for (var i = 0; i < this.shapePos.length; i++) {
+                //    this.shapePos[i].plusEq(this.shapeVels[i]);
+                //}
+            }
             if (this.active) {
-                if (this.abortCounter > -1) {
-                    this.targetRotation = 0;
-                    if (this.fuel > 0)
-                        this.thrustBuild = 3;
-                    this.abortCounter--;
-                    this.fuel -= 1;
-                }
                 if (this.fuel <= 0)
                     this.thrusting = 0;
                 this.thrustBuild += ((this.thrusting - this.thrustBuild) * 0.2);
@@ -124,24 +96,38 @@
                 this.bouncing -= Math.PI / 20;
             }
             if (this.fuel < 0)
-                this.fuel = 0;            
+                this.fuel = 0;
             this.thrustLevel = this.thrustBuild;
-        }       
+        }
 
         crash(): void {
-            this.rotation = this.targetRotation = 0;
+            console.log("crash", this.pos.toString(), this.vel.toString(), this.rotation);
+            //this.rotation = this.targetRotation = 0;
             this.active = false;
             this.exploding = true;
             this.thrustBuild = 0;
+            this.color = 'red';
         }
 
         land(): void {
+            console.log("land", this.pos.toString(), this.vel.toString(), this.rotation);
             this.active = false;
             this.thrustBuild = 0;
+            this.color = 'green';
         }
 
         makeBounce(): void {
             this.bouncing = Math.PI * 2;
+        }
+    }
+
+    export class LanderRenderer {
+        shapes = [];
+        shapePos = []
+        shapeVels = [];
+
+        constructor() {
+            this.defineShape();
         }
 
         defineShape(): void {
@@ -197,25 +183,25 @@
             this.shapes.push(shape);
             this.shapeVels.push(new Vector2(2, -0.5));
             for (var i = 0; i < this.shapes.length; i++) {
-                this.shapePos.push(new Vector2(1, -0.5));
+                this.shapePos.push(new Vector2(0, 0));
             }
         }
 
-        render(c: CanvasRenderingContext2D, scale: number): void {
+        render(l: Lander, c: CanvasRenderingContext2D, scale: number): void {
             c.save();
-            c.translate(this.pos.x, this.pos.y);
-            c.scale(this.scale, this.scale);
-            c.lineWidth = 1 / (this.scale * scale);
-            c.rotate(this.rotation * Vector2.TO_RADIANS);
-            c.strokeStyle = this.color;
+            c.translate(l.pos.x, l.pos.y);
+            c.scale(l.scale, l.scale);
+            c.lineWidth = 1 / (l.scale * scale);
+            c.rotate(l.rotation * Vector2.TO_RADIANS);
+            c.strokeStyle = l.color;
             c.beginPath();
             this.renderShapes(c);
-            if ((this.thrustBuild > 0) && (this.active)) {
-                c.lineTo(0, 11 + (Math.min(this.thrustBuild, 1) * 20 * ((((this.counter >> 1) % 3) * 0.2) + 1)));
+            if ((l.thrustBuild > 0) && (l.active)) {
+                c.lineTo(0, 11 + (Math.min(l.thrustBuild, 1) * 20 * ((((l.counter >> 1) % 3) * 0.2) + 1)));
                 c.closePath();
             }
             c.stroke();
-            c.restore();            
+            c.restore();
         }
 
         renderShapes(c: CanvasRenderingContext2D): void {
@@ -247,6 +233,6 @@
                 }
                 c.restore();
             }
-        }        
+        }
     }
 }

@@ -18,7 +18,7 @@
             return this;
         }
 
-        toString(decPlaces: number): string {
+        toString(decPlaces?: number): string {
             decPlaces = decPlaces || 3;
             var scalar = Math.pow(10, decPlaces);
             return "[" + Math.round(this.x * scalar) / scalar + ", " + Math.round(this.y * scalar) / scalar + "]";

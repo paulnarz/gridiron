@@ -17,7 +17,6 @@ var nnlunar;
             this.targetRotation = 0;
             this.lastRotationTime = 0;
             this.counter = 0;
-            this.abortCounter = -1;
             this.rotation = 0;
             this.thrusting = 0;
             this.altitude = 0;
@@ -29,35 +28,23 @@ var nnlunar;
             this.bottom = 0;
             this.top = 0;
             this.color = 'white';
-            this.shapes = [];
-            this.shapePos = [];
-            this.shapeVels = [];
             this.thrustLevel = 0;
-            this.defineShape();
         }
         Lander.prototype.reset = function () {
-            this.abortCounter = -1;
-            this.lastAbort = Date.now();
             this.vel.reset(0, 0);
             this.pos.reset(0, 0);
-            this.rotation = this.targetRotation = -90;
+            this.rotation = this.targetRotation = 0;
             this.scale = 1;
             this.thrustBuild = 0;
             this.bouncing = 0;
             this.active = true;
             this.exploding = false;
-            for (var i = 0; i < this.shapePos.length; i++) {
-                this.shapePos[i].reset(0, 0);
-            }
             this.thrusting = 0;
+            this.color = 'white';
         };
         Lander.prototype.rotate = function (direction) {
-            var now = new Date().getTime();
-            if (now - this.lastRotationTime > 80) {
-                this.targetRotation += direction * 15;
-                this.targetRotation = nnlunar.clamp(this.targetRotation, -90, 90);
-                this.lastRotationTime = now;
-            }
+            this.targetRotation += direction * 15;
+            this.targetRotation = nnlunar.clamp(this.targetRotation, -90, 90);
         };
         Lander.prototype.setRotation = function (angle) {
             this.targetRotation = Math.round(nnlunar.clamp(angle, -90, 90) / 10) * 10;
@@ -65,31 +52,14 @@ var nnlunar;
         Lander.prototype.thrust = function (power) {
             this.thrusting = power;
         };
-        Lander.prototype.abort = function () {
-            var now = Date.now();
-            if (now - this.lastAbort > 10000) {
-                this.abortCounter = 100;
-                this.lastAbort = now;
-            }
-        };
         Lander.prototype.update = function () {
             this.counter++;
             this.rotation += (this.targetRotation - this.rotation) * 0.3;
             if (Math.abs(this.rotation - this.targetRotation) < 0.1)
                 this.rotation = this.targetRotation;
             if (this.exploding) {
-                for (var i = 0; i < this.shapePos.length; i++) {
-                    this.shapePos[i].plusEq(this.shapeVels[i]);
-                }
             }
             if (this.active) {
-                if (this.abortCounter > -1) {
-                    this.targetRotation = 0;
-                    if (this.fuel > 0)
-                        this.thrustBuild = 3;
-                    this.abortCounter--;
-                    this.fuel -= 1;
-                }
                 if (this.fuel <= 0)
                     this.thrusting = 0;
                 this.thrustBuild += ((this.thrusting - this.thrustBuild) * 0.2);
@@ -122,19 +92,33 @@ var nnlunar;
             this.thrustLevel = this.thrustBuild;
         };
         Lander.prototype.crash = function () {
-            this.rotation = this.targetRotation = 0;
+            console.log("crash", this.pos.toString(), this.vel.toString(), this.rotation);
+            //this.rotation = this.targetRotation = 0;
             this.active = false;
             this.exploding = true;
             this.thrustBuild = 0;
+            this.color = 'red';
         };
         Lander.prototype.land = function () {
+            console.log("land", this.pos.toString(), this.vel.toString(), this.rotation);
             this.active = false;
             this.thrustBuild = 0;
+            this.color = 'green';
         };
         Lander.prototype.makeBounce = function () {
             this.bouncing = Math.PI * 2;
         };
-        Lander.prototype.defineShape = function () {
+        return Lander;
+    }());
+    nnlunar.Lander = Lander;
+    var LanderRenderer = (function () {
+        function LanderRenderer() {
+            this.shapes = [];
+            this.shapePos = [];
+            this.shapeVels = [];
+            this.defineShape();
+        }
+        LanderRenderer.prototype.defineShape = function () {
             var m = 'm', l = 'l', r = 'r', cp = 'cp';
             var min = 2.6, max = 5;
             var shape = [];
@@ -183,26 +167,26 @@ var nnlunar;
             this.shapes.push(shape);
             this.shapeVels.push(new nnlunar.Vector2(2, -0.5));
             for (var i = 0; i < this.shapes.length; i++) {
-                this.shapePos.push(new nnlunar.Vector2(1, -0.5));
+                this.shapePos.push(new nnlunar.Vector2(0, 0));
             }
         };
-        Lander.prototype.render = function (c, scale) {
+        LanderRenderer.prototype.render = function (l, c, scale) {
             c.save();
-            c.translate(this.pos.x, this.pos.y);
-            c.scale(this.scale, this.scale);
-            c.lineWidth = 1 / (this.scale * scale);
-            c.rotate(this.rotation * nnlunar.Vector2.TO_RADIANS);
-            c.strokeStyle = this.color;
+            c.translate(l.pos.x, l.pos.y);
+            c.scale(l.scale, l.scale);
+            c.lineWidth = 1 / (l.scale * scale);
+            c.rotate(l.rotation * nnlunar.Vector2.TO_RADIANS);
+            c.strokeStyle = l.color;
             c.beginPath();
             this.renderShapes(c);
-            if ((this.thrustBuild > 0) && (this.active)) {
-                c.lineTo(0, 11 + (Math.min(this.thrustBuild, 1) * 20 * ((((this.counter >> 1) % 3) * 0.2) + 1)));
+            if ((l.thrustBuild > 0) && (l.active)) {
+                c.lineTo(0, 11 + (Math.min(l.thrustBuild, 1) * 20 * ((((l.counter >> 1) % 3) * 0.2) + 1)));
                 c.closePath();
             }
             c.stroke();
             c.restore();
         };
-        Lander.prototype.renderShapes = function (c) {
+        LanderRenderer.prototype.renderShapes = function (c) {
             var shapes = this.shapes, shapePos = this.shapePos, shapeVels = this.shapeVels;
             for (var i = 0; i < shapes.length; i++) {
                 var s = shapes[i].slice(0);
@@ -230,66 +214,9 @@ var nnlunar;
                 c.restore();
             }
         };
-        return Lander;
+        return LanderRenderer;
     }());
-    nnlunar.Lander = Lander;
-})(nnlunar || (nnlunar = {}));
-var nnlunar;
-(function (nnlunar) {
-    function clamp(value, min, max) {
-        return (value < min) ? min : (value > max) ? max : value;
-    }
-    nnlunar.clamp = clamp;
-})(nnlunar || (nnlunar = {}));
-var nnlunar;
-(function (nnlunar) {
-    var LunarGameRaw = (function () {
-        function LunarGameRaw() {
-            var _this = this;
-            this.SCREEN_WIDTH = 800;
-            this.SCREEN_HEIGHT = 800;
-            this.view = {
-                x: 0,
-                y: 0,
-                scale: 1,
-                left: 0,
-                right: 0,
-                top: 0,
-                bottom: 0
-            };
-            this.loop = function () {
-                requestAnimationFrame(_this.loop);
-                _this.lander.setRotation(0);
-                _this.lander.thrust(1);
-                _this.lander.update();
-                _this.render();
-            };
-            this.canvas = document.createElement('canvas');
-            this.context = this.canvas.getContext('2d');
-            document.body.appendChild(this.canvas);
-            this.canvas.width = this.SCREEN_WIDTH;
-            this.canvas.height = this.SCREEN_HEIGHT;
-            this.canvas.style.backgroundColor = "#000000";
-            this.lander = new nnlunar.Lander();
-            this.lander.reset();
-            this.lander.pos.x = this.SCREEN_WIDTH / 2;
-            this.lander.pos.y = this.SCREEN_HEIGHT / 2;
-            this.lander.fuel = 100;
-            this.loop();
-        }
-        LunarGameRaw.prototype.render = function () {
-            var c = this.context;
-            var view = this.view;
-            c.clearRect(0, 0, this.SCREEN_WIDTH, this.SCREEN_HEIGHT);
-            c.save();
-            c.translate(view.x, view.y);
-            c.scale(view.scale, view.scale);
-            this.lander.render(c, view.scale);
-            c.restore();
-        };
-        return LunarGameRaw;
-    }());
-    nnlunar.LunarGameRaw = LunarGameRaw;
+    nnlunar.LanderRenderer = LanderRenderer;
 })(nnlunar || (nnlunar = {}));
 var nnlunar;
 (function (nnlunar) {
@@ -309,6 +236,123 @@ var nnlunar;
         return LunarGamePhaser;
     }());
     nnlunar.LunarGamePhaser = LunarGamePhaser;
+})(nnlunar || (nnlunar = {}));
+var nnlunar;
+(function (nnlunar) {
+    var LunarGameRaw = (function () {
+        function LunarGameRaw() {
+            var _this = this;
+            this.SCREEN_WIDTH = 800;
+            this.SCREEN_HEIGHT = 800;
+            this.simulationMul = 8;
+            this.populationSize = 50;
+            this.start = new nnlunar.Vector2(400, 200);
+            this.langscape = 600;
+            this.target = {
+                left: 340,
+                right: 460,
+                y: 600,
+                minVel: 0.15,
+                minAng: 5
+            };
+            this.view = {
+                x: 0,
+                y: 0,
+                scale: 1,
+                left: 0,
+                right: 0,
+                top: 0,
+                bottom: 0
+            };
+            this.loop = function () {
+                requestAnimationFrame(_this.loop);
+                for (var i = 0, len = _this.landers.length; i < len; i++) {
+                    var l = _this.landers[i];
+                    if (l.active) {
+                        if (Math.random() < 0.01)
+                            l.thrust(1);
+                        if (Math.random() < 0.01)
+                            l.rotate(1);
+                        if (Math.random() < 0.01)
+                            l.rotate(-1);
+                        for (var j = 0; j < _this.simulationMul; j++) {
+                            l.update();
+                            //check collision
+                            if (l.bottom >= _this.target.y) {
+                                if ((l.left > _this.target.left) && (l.right < _this.target.right)) {
+                                    if ((Math.abs(l.rotation) <= _this.target.minAng) && (l.vel.y <= _this.target.minVel)) {
+                                        l.land();
+                                    }
+                                    else {
+                                        l.crash();
+                                    }
+                                }
+                                else {
+                                    l.crash();
+                                }
+                            }
+                        }
+                    }
+                }
+                _this.render();
+            };
+            this.canvas = document.createElement('canvas');
+            this.context = this.canvas.getContext('2d');
+            document.body.appendChild(this.canvas);
+            this.canvas.width = this.SCREEN_WIDTH;
+            this.canvas.height = this.SCREEN_HEIGHT;
+            this.canvas.style.backgroundColor = "#000000";
+            this.renderer = new nnlunar.LanderRenderer();
+            this.landers = [];
+            for (var i = 0; i < this.populationSize; i++) {
+                var l = new nnlunar.Lander();
+                l.reset();
+                l.pos.x = this.start.x;
+                l.pos.y = this.start.y;
+                l.fuel = 100;
+                this.landers.push(l);
+            }
+            this.loop();
+        }
+        LunarGameRaw.prototype.render = function () {
+            var c = this.context;
+            var view = this.view;
+            c.clearRect(0, 0, this.SCREEN_WIDTH, this.SCREEN_HEIGHT);
+            c.save();
+            c.translate(view.x, view.y);
+            c.scale(view.scale, view.scale);
+            //draw start
+            c.strokeStyle = 'white';
+            c.beginPath();
+            c.arc(this.start.x, this.start.y, 1, 0, 90);
+            c.stroke();
+            //draw langscape
+            c.strokeStyle = 'grey';
+            c.beginPath();
+            c.moveTo(0, this.target.y);
+            c.lineTo(this.SCREEN_WIDTH, this.target.y);
+            c.stroke();
+            c.strokeStyle = 'green';
+            c.lineWidth = 5;
+            c.beginPath();
+            c.moveTo(this.target.left, this.target.y);
+            c.lineTo(this.target.right, this.target.y);
+            c.stroke();
+            for (var i = 0, len = this.landers.length; i < len; i++) {
+                this.renderer.render(this.landers[i], c, view.scale);
+            }
+            c.restore();
+        };
+        return LunarGameRaw;
+    }());
+    nnlunar.LunarGameRaw = LunarGameRaw;
+})(nnlunar || (nnlunar = {}));
+var nnlunar;
+(function (nnlunar) {
+    function clamp(value, min, max) {
+        return (value < min) ? min : (value > max) ? max : value;
+    }
+    nnlunar.clamp = clamp;
 })(nnlunar || (nnlunar = {}));
 var nnlunar;
 (function (nnlunar) {
@@ -491,6 +535,15 @@ var nnpoc;
         return Color;
     }());
     nnpoc.Color = Color;
+})(nnpoc || (nnpoc = {}));
+var nnpoc;
+(function (nnpoc) {
+    var Edge = (function () {
+        function Edge() {
+        }
+        return Edge;
+    }());
+    nnpoc.Edge = Edge;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
 (function (nnpoc) {
@@ -826,15 +879,6 @@ var nnpoc;
         return Network;
     }());
     nnpoc.Network = Network;
-})(nnpoc || (nnpoc = {}));
-var nnpoc;
-(function (nnpoc) {
-    var Edge = (function () {
-        function Edge() {
-        }
-        return Edge;
-    }());
-    nnpoc.Edge = Edge;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
 (function (nnpoc) {
