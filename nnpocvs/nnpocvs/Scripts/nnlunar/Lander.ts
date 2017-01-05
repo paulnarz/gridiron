@@ -102,7 +102,7 @@
 
         crash(): void {
             console.log("crash", this.pos.toString(), this.vel.toString(), this.rotation);
-            //this.rotation = this.targetRotation = 0;
+            this.rotation = this.targetRotation = 0;
             this.active = false;
             this.exploding = true;
             this.explodingCounter = 0;
@@ -123,8 +123,8 @@
     }
 
     export class LanderRenderer {
-        shapes = [];        
-        shapeVels = [];
+        shapes = [];
+        shapeVels: Vector2[] = [];
 
         constructor() {
             this.defineShape();
@@ -182,9 +182,12 @@
             shape.push(l, -4, 11);
             this.shapes.push(shape);
             this.shapeVels.push(new Vector2(2, -0.5));
+            for (let i = 0; i < this.shapeVels.length; i++) {
+                this.shapeVels[i].rotate(-45, false);
+            }
         }
 
-        render(l: Lander, c: CanvasRenderingContext2D, scale: number): void {
+        render(l: Lander, c: CanvasRenderingContext2D, scale: number): void {            
             c.save();
             c.translate(l.pos.x, l.pos.y);
             c.scale(l.scale, l.scale);

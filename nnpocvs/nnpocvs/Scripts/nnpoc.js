@@ -96,7 +96,7 @@ var nnlunar;
         };
         Lander.prototype.crash = function () {
             console.log("crash", this.pos.toString(), this.vel.toString(), this.rotation);
-            //this.rotation = this.targetRotation = 0;
+            this.rotation = this.targetRotation = 0;
             this.active = false;
             this.exploding = true;
             this.explodingCounter = 0;
@@ -169,6 +169,9 @@ var nnlunar;
             shape.push(l, -4, 11);
             this.shapes.push(shape);
             this.shapeVels.push(new nnlunar.Vector2(2, -0.5));
+            for (var i = 0; i < this.shapeVels.length; i++) {
+                this.shapeVels[i].rotate(-45, false);
+            }
         };
         LanderRenderer.prototype.render = function (l, c, scale) {
             c.save();
