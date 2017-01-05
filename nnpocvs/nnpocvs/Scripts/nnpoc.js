@@ -95,8 +95,7 @@ var nnlunar;
             this.thrustLevel = this.thrustBuild;
         };
         Lander.prototype.crash = function () {
-            //console.log("crash", this.pos.toString(), this.vel.toString(), this.rotation);
-            this.rotation = this.targetRotation = 0;
+            //console.log("crash", this.pos.toString(), this.vel.toString(), this.rotation);            
             this.active = false;
             this.exploding = true;
             this.explodingCounter = 0;
@@ -174,6 +173,8 @@ var nnlunar;
             }
         };
         LanderRenderer.prototype.render = function (l, c, scale) {
+            if (l.explodingCounter > 60)
+                return;
             c.save();
             c.translate(l.pos.x, l.pos.y);
             c.scale(l.scale, l.scale);
@@ -247,15 +248,41 @@ var nnlunar;
             var _this = this;
             this.SCREEN_WIDTH = 800;
             this.SCREEN_HEIGHT = 800;
-            this.simulationMul = 16;
-            this.start = new nnlunar.Vector2(400, 200);
-            this.startingFuel = 100;
+            this.simulationMul = 32;
+            this.start = {
+                x: 400,
+                y: 200,
+                rotation: 0,
+                fuel: 100
+            };
             this.target = {
-                left: 340,
-                right: 460,
+                x: 200,
                 y: 600,
+                left: 200 - 40,
+                right: 200 + 40,
                 minVel: 0.15,
                 minAng: 5
+            };
+            this.calcFunc = function (l, n) {
+                var result = n.calculate([
+                    nnpoc.lerpInv(l.pos.x, _this.start.x, _this.target.x),
+                    nnpoc.lerpInv(l.pos.y, _this.start.y, _this.target.y),
+                    nnpoc.lerpInv(l.rotation, -90, 90),
+                    nnpoc.lerpInv(l.vel.y, -0.35, 0.35),
+                    nnpoc.lerpInv(l.fuel, 0, _this.start.fuel)
+                ]);
+                l.thrust(result[0]);
+                l.setRotation(nnpoc.lerp(result[1], -90, 90));
+            };
+            this.scoreFunc = function (l) {
+                var score = 0;
+                if (l.exploding)
+                    score += 3;
+                score += Math.pow((l.pos.x - _this.target.x) / (_this.target.x - _this.start.x), 2);
+                score += Math.pow(l.vel.y / 0.7, 2);
+                score += Math.pow(l.rotation / 180, 2);
+                console.log(score, (l.pos.x - _this.target.x) / (_this.target.x - _this.start.x), l.vel.y / 0.7, l.rotation / 180);
+                return score;
             };
             this.evoOptions = {
                 population: 50,
@@ -265,9 +292,9 @@ var nnlunar;
                 mutationRange: 0.5,
                 nbChild: 1,
                 network: {
-                    inputs: 3,
+                    inputs: 5,
                     hiddens: [3, 3],
-                    outputs: 1,
+                    outputs: 2,
                     randomClamped: function () { return Math.random() * 8 - 4; }
                 }
             };
@@ -292,14 +319,7 @@ var nnlunar;
                 for (var i = 0, len = _this.landers.length; i < len; i++) {
                     var l = _this.landers[i];
                     if (l.active) {
-                        var network = _this.networks[i];
-                        var result = network.calculate([
-                            nnpoc.lerpInv(l.pos.y, 0, 200),
-                            nnpoc.lerpInv(l.vel.y, -0.35, 0.35),
-                            nnpoc.lerpInv(l.fuel, 0, _this.startingFuel)
-                        ]);
-                        var power = nnlunar.clamp(result[0], 0, 1);
-                        l.thrust(power);
+                        _this.calcFunc(l, _this.networks[i]);
                     }
                     l.update();
                     if (l.active) {
@@ -316,9 +336,7 @@ var nnlunar;
                             else {
                                 l.crash();
                             }
-                            var score = l.vel.y * l.vel.y + l.rotation * l.rotation;
-                            console.log(score, l.vel.y, l.rotation, l.fuel);
-                            _this.evo.networkScore(_this.networks[i], score);
+                            _this.evo.networkScore(_this.networks[i], _this.scoreFunc(l));
                         }
                     }
                     if (l.active) {
@@ -355,7 +373,8 @@ var nnlunar;
                 l.reset();
                 l.pos.x = this.start.x;
                 l.pos.y = this.start.y;
-                l.fuel = this.startingFuel;
+                l.rotation = this.start.rotation;
+                l.fuel = this.start.fuel;
             }
         };
         LunarGameRaw.prototype.render = function () {

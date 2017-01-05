@@ -2,16 +2,46 @@
     export class LunarGameRaw {
         SCREEN_WIDTH = 800;
         SCREEN_HEIGHT = 800;
-        simulationMul = 16;                
-        start = new Vector2(400, 200);
-        startingFuel = 100;        
-        target = {
-            left: 340,
-            right: 460,
+        simulationMul = 32;
+      
+        start = {
+            x: 400,
+            y: 200,
+            rotation: 0,
+            fuel: 100
+        };
+                
+        target = {            
+            x: 200,
             y: 600,
+            left: 200 - 40,
+            right: 200 + 40,
             minVel: 0.15,
             minAng: 5
         };
+
+        calcFunc = (l: Lander, n: nnpoc.Network): void => {            
+            var result = n.calculate([
+                nnpoc.lerpInv(l.pos.x, this.start.x, this.target.x),
+                nnpoc.lerpInv(l.pos.y, this.start.y, this.target.y),
+                nnpoc.lerpInv(l.rotation, -90, 90),
+                nnpoc.lerpInv(l.vel.y, -0.35, 0.35),
+                nnpoc.lerpInv(l.fuel, 0, this.start.fuel)
+            ]);
+            l.thrust(result[0]);
+            l.setRotation(nnpoc.lerp(result[1], -90, 90));                        
+        }
+
+        scoreFunc = (l: Lander): number => {
+            var score = 0;
+            if (l.exploding)
+                score += 3;
+            score += Math.pow((l.pos.x - this.target.x) / (this.target.x - this.start.x), 2);
+            score += Math.pow(l.vel.y / 0.7, 2);
+            score += Math.pow(l.rotation / 180 , 2);
+            console.log(score, (l.pos.x - this.target.x) / (this.target.x - this.start.x), l.vel.y / 0.7, l.rotation / 180);
+            return score;
+        }    
 
         evoOptions: nnpoc.NeuroevolutionOptions = {
             population: 50,
@@ -21,9 +51,9 @@
             mutationRange: 0.5,
             nbChild: 1,
             network: {
-                inputs: 3,
+                inputs: 5,
                 hiddens: [3, 3],
-                outputs: 1,
+                outputs: 2,
                 randomClamped: () => { return Math.random() * 8 - 4; }
             }
         };
@@ -78,7 +108,8 @@
                 l.reset();
                 l.pos.x = this.start.x;
                 l.pos.y = this.start.y;
-                l.fuel = this.startingFuel;                
+                l.rotation = this.start.rotation;
+                l.fuel = this.start.fuel;                
             }
         }
 
@@ -99,14 +130,7 @@
                 var l = this.landers[i];
 
                 if (l.active) {
-                    var network = this.networks[i];
-                    var result = network.calculate([
-                        nnpoc.lerpInv(l.pos.y, 0, 200),
-                        nnpoc.lerpInv(l.vel.y, -0.35, 0.35),
-                        nnpoc.lerpInv(l.fuel, 0, this.startingFuel)                        
-                    ]);
-                    var power = clamp(result[0], 0, 1);
-                    l.thrust(power);
+                    this.calcFunc(l, this.networks[i]);                    
                 }
 
                 l.update();
@@ -126,9 +150,7 @@
                             l.crash();
                         }
 
-                        var score = l.vel.y * l.vel.y + l.rotation * l.rotation;
-                        console.log(score, l.vel.y, l.rotation, l.fuel);
-                        this.evo.networkScore(this.networks[i], score);
+                        this.evo.networkScore(this.networks[i], this.scoreFunc(l));
                     }
                 }
 

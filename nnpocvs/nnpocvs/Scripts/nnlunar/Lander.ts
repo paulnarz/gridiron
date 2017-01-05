@@ -101,8 +101,7 @@
         }
 
         crash(): void {
-            //console.log("crash", this.pos.toString(), this.vel.toString(), this.rotation);
-            this.rotation = this.targetRotation = 0;
+            //console.log("crash", this.pos.toString(), this.vel.toString(), this.rotation);            
             this.active = false;
             this.exploding = true;
             this.explodingCounter = 0;
@@ -187,7 +186,10 @@
             }
         }
 
-        render(l: Lander, c: CanvasRenderingContext2D, scale: number): void {            
+        render(l: Lander, c: CanvasRenderingContext2D, scale: number): void {
+            if (l.explodingCounter > 60)
+                return;
+
             c.save();
             c.translate(l.pos.x, l.pos.y);
             c.scale(l.scale, l.scale);
