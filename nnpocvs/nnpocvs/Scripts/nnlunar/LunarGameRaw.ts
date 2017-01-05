@@ -2,16 +2,16 @@
     export class LunarGameRaw {
         SCREEN_WIDTH = 800;
         SCREEN_HEIGHT = 800;
-        simulationMul = 32;
-      
+        simulationMul = 128;
+
         start = {
             x: 200,
             y: 200,
             rotation: 0,
-            fuel: 400
+            fuel: 500
         };
-                
-        target = {            
+
+        target = {
             x: 600,
             y: 600,
             left: 600 - 40,
@@ -20,9 +20,9 @@
             minAng: 5
         };
 
-        calcFunc = (l: Lander, n: nnpoc.Network): void => {            
+        calcFunc(l: Lander, n: nnpoc.Network): void {
             var result = n.calculate([
-                nnpoc.lerpInv(l.pos.x, -80, 80),
+                nnpoc.lerpInv(l.pos.x, 0, 800),
                 nnpoc.lerpInv(l.pos.y, this.start.y, this.target.y),
                 nnpoc.lerpInv(l.rotation, -90, 90),
                 nnpoc.lerpInv(l.vel.x, -0.35, 0.35),
@@ -30,23 +30,35 @@
                 nnpoc.lerpInv(l.fuel, 0, this.start.fuel)
             ]);
             l.thrust(result[0]);
-            l.setRotation(nnpoc.lerp(result[1], -90, 90));                        
+            l.setRotation(nnpoc.lerp(result[1], -90, 90));
         }
 
-        scoreFunc = (l: Lander): number => {
+        scoreFunc(l: Lander): number {
             var score = 0;
-            if (l.exploding)
-                score += 3;
-            var dx = (l.pos.x - this.target.x) / 80;
+            if (l.crashed)
+                score += 6;
+            var dx = (l.pos.x - this.target.x) / 800;
             var dvy = l.vel.y / 0.35;
             var dr = l.rotation / 90;
 
             score += dx * dx;
             score += dvy * dvy;
             score += dr * dr;
-            console.log(score, l.pos.x - this.target.x, l.vel.y, l.rotation, dx, dvy, dr);
             return score;
-        }    
+        }
+
+        statFunc(l: Lander): any {
+            return {
+                landed: l.landed,
+                crashed: l.crashed,
+                x: l.pos.x,
+                y: l.pos.y,
+                r: l.rotation,
+                f: l.fuel,
+                vx: l.vel.x,
+                vy: l.vel.y,
+            }
+        }
 
         evoOptions: nnpoc.NeuroevolutionOptions = {
             population: 100,
@@ -79,6 +91,20 @@
             bottom: 0
         };
 
+        stats = {
+            generations: 0,
+            landed: 0,
+            best: 0,
+            average: 0,
+            population: 0,
+            crashed: 0,
+            worst: 0,
+            scores: [] as {
+                score: number,
+                data: any
+            }[]
+        };
+
         constructor() {
             this.canvas = document.createElement('canvas');
             this.context = this.canvas.getContext('2d');
@@ -90,21 +116,42 @@
             this.evo = new nnpoc.Neuroevolution(this.evoOptions);
 
             this.landers = [];
-            for (let i = 0; i < this.evoOptions.population; i++) {
-                this.landers.push(new Lander());
-            }
-
             this.reset();
             this.loop();
         }
 
         reset(): void {
-            this.networks = this.evo.nextGeneration();            
+            this.stats.scores.sort((a, b) => { return a.score - b.score; });
+            this.stats.landed = 0;
+            this.stats.crashed = 0;
+            this.stats.best = Infinity;
+            this.stats.worst = -Infinity;
+            this.stats.average = 0;
+            this.stats.population = this.stats.scores.length;
 
-            console.log(this.networks.length, this.landers.length);            
+            this.stats.scores.forEach(s => {
+                if (s.data.landed)
+                    this.stats.landed++;
+                if (s.data.crashed)
+                    this.stats.crashed++;
+                if (this.stats.best > s.score)
+                    this.stats.best = s.score;
+                if (this.stats.worst < s.score)
+                    this.stats.worst = s.score;
+                this.stats.average += s.score;
+            });
+
+            if (this.stats.scores.length > 0)
+                this.stats.average /= this.stats.scores.length;
+
+            console.log(this.stats);
+
+            this.stats.generations++;
+            this.stats.scores = [];
+            this.networks = this.evo.nextGeneration();
 
             for (let i = 0; i < this.networks.length; i++) {
-                var l = this.landers[i];                
+                var l = this.landers[i];
                 if (!l) {
                     l = new Lander();
                     this.landers.push(l);
@@ -114,8 +161,11 @@
                 l.pos.x = this.start.x;
                 l.pos.y = this.start.y;
                 l.rotation = this.start.rotation;
-                l.fuel = this.start.fuel;                
+                l.fuel = this.start.fuel;
             }
+
+            if (this.landers.length > this.networks.length)
+                this.landers.splice(this.networks.length, this.landers.length - this.networks.length);
         }
 
         loop = (): void => {
@@ -135,7 +185,7 @@
                 var l = this.landers[i];
 
                 if (l.active) {
-                    this.calcFunc(l, this.networks[i]);                    
+                    this.calcFunc(l, this.networks[i]);
                 }
 
                 l.update();
@@ -155,7 +205,9 @@
                             l.crash();
                         }
 
-                        this.evo.networkScore(this.networks[i], this.scoreFunc(l));
+                        var score = this.scoreFunc(l);
+                        this.stats.scores.push({ score: score, data: this.statFunc(l) });
+                        this.evo.networkScore(this.networks[i], score);
                     }
                 }
 

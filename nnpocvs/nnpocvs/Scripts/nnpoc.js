@@ -13,6 +13,8 @@ var nnlunar;
             this.topSpeed = 0.35;
             this.drag = 0.9997;
             this.bouncing = 0;
+            this.landed = 0;
+            this.crashed = 0;
             this.exploding = false;
             this.explodingCounter = 0;
             this.targetRotation = 0;
@@ -38,6 +40,8 @@ var nnlunar;
             this.scale = 1;
             this.thrustBuild = 0;
             this.bouncing = 0;
+            this.landed = 0;
+            this.crashed = 0;
             this.active = true;
             this.exploding = false;
             this.explodingCounter = 0;
@@ -95,7 +99,9 @@ var nnlunar;
             this.thrustLevel = this.thrustBuild;
         };
         Lander.prototype.crash = function () {
-            //console.log("crash", this.pos.toString(), this.vel.toString(), this.rotation);            
+            //console.log("crash", this.pos.toString(), this.vel.toString(), this.rotation);         
+            this.landed = 0;
+            this.crashed = 1;
             this.active = false;
             this.exploding = true;
             this.explodingCounter = 0;
@@ -104,6 +110,8 @@ var nnlunar;
         };
         Lander.prototype.land = function () {
             //console.log("land", this.pos.toString(), this.vel.toString(), this.rotation);
+            this.landed = 1;
+            this.crashed = 0;
             this.active = false;
             this.thrustBuild = 0;
             this.color = 'green';
@@ -248,12 +256,12 @@ var nnlunar;
             var _this = this;
             this.SCREEN_WIDTH = 800;
             this.SCREEN_HEIGHT = 800;
-            this.simulationMul = 32;
+            this.simulationMul = 128;
             this.start = {
                 x: 200,
                 y: 200,
                 rotation: 0,
-                fuel: 400
+                fuel: 500
             };
             this.target = {
                 x: 600,
@@ -262,31 +270,6 @@ var nnlunar;
                 right: 600 + 40,
                 minVel: 0.15,
                 minAng: 5
-            };
-            this.calcFunc = function (l, n) {
-                var result = n.calculate([
-                    nnpoc.lerpInv(l.pos.x, -80, 80),
-                    nnpoc.lerpInv(l.pos.y, _this.start.y, _this.target.y),
-                    nnpoc.lerpInv(l.rotation, -90, 90),
-                    nnpoc.lerpInv(l.vel.x, -0.35, 0.35),
-                    nnpoc.lerpInv(l.vel.y, -0.35, 0.35),
-                    nnpoc.lerpInv(l.fuel, 0, _this.start.fuel)
-                ]);
-                l.thrust(result[0]);
-                l.setRotation(nnpoc.lerp(result[1], -90, 90));
-            };
-            this.scoreFunc = function (l) {
-                var score = 0;
-                if (l.exploding)
-                    score += 3;
-                var dx = (l.pos.x - _this.target.x) / 80;
-                var dvy = l.vel.y / 0.35;
-                var dr = l.rotation / 90;
-                score += dx * dx;
-                score += dvy * dvy;
-                score += dr * dr;
-                console.log(score, l.pos.x - _this.target.x, l.vel.y, l.rotation, dx, dvy, dr);
-                return score;
             };
             this.evoOptions = {
                 population: 100,
@@ -310,6 +293,16 @@ var nnlunar;
                 right: 0,
                 top: 0,
                 bottom: 0
+            };
+            this.stats = {
+                generations: 0,
+                landed: 0,
+                best: 0,
+                average: 0,
+                population: 0,
+                crashed: 0,
+                worst: 0,
+                scores: []
             };
             this.loop = function () {
                 requestAnimationFrame(_this.loop);
@@ -340,7 +333,9 @@ var nnlunar;
                             else {
                                 l.crash();
                             }
-                            _this.evo.networkScore(_this.networks[i], _this.scoreFunc(l));
+                            var score = _this.scoreFunc(l);
+                            _this.stats.scores.push({ score: score, data: _this.statFunc(l) });
+                            _this.evo.networkScore(_this.networks[i], score);
                         }
                     }
                     if (l.active) {
@@ -359,15 +354,71 @@ var nnlunar;
             this.renderer = new nnlunar.LanderRenderer();
             this.evo = new nnpoc.Neuroevolution(this.evoOptions);
             this.landers = [];
-            for (var i = 0; i < this.evoOptions.population; i++) {
-                this.landers.push(new nnlunar.Lander());
-            }
             this.reset();
             this.loop();
         }
+        LunarGameRaw.prototype.calcFunc = function (l, n) {
+            var result = n.calculate([
+                nnpoc.lerpInv(l.pos.x, 0, 800),
+                nnpoc.lerpInv(l.pos.y, this.start.y, this.target.y),
+                nnpoc.lerpInv(l.rotation, -90, 90),
+                nnpoc.lerpInv(l.vel.x, -0.35, 0.35),
+                nnpoc.lerpInv(l.vel.y, -0.35, 0.35),
+                nnpoc.lerpInv(l.fuel, 0, this.start.fuel)
+            ]);
+            l.thrust(result[0]);
+            l.setRotation(nnpoc.lerp(result[1], -90, 90));
+        };
+        LunarGameRaw.prototype.scoreFunc = function (l) {
+            var score = 0;
+            if (l.crashed)
+                score += 6;
+            var dx = (l.pos.x - this.target.x) / 800;
+            var dvy = l.vel.y / 0.35;
+            var dr = l.rotation / 90;
+            score += dx * dx;
+            score += dvy * dvy;
+            score += dr * dr;
+            return score;
+        };
+        LunarGameRaw.prototype.statFunc = function (l) {
+            return {
+                landed: l.landed,
+                crashed: l.crashed,
+                x: l.pos.x,
+                y: l.pos.y,
+                r: l.rotation,
+                f: l.fuel,
+                vx: l.vel.x,
+                vy: l.vel.y,
+            };
+        };
         LunarGameRaw.prototype.reset = function () {
+            var _this = this;
+            this.stats.scores.sort(function (a, b) { return a.score - b.score; });
+            this.stats.landed = 0;
+            this.stats.crashed = 0;
+            this.stats.best = Infinity;
+            this.stats.worst = -Infinity;
+            this.stats.average = 0;
+            this.stats.population = this.stats.scores.length;
+            this.stats.scores.forEach(function (s) {
+                if (s.data.landed)
+                    _this.stats.landed++;
+                if (s.data.crashed)
+                    _this.stats.crashed++;
+                if (_this.stats.best > s.score)
+                    _this.stats.best = s.score;
+                if (_this.stats.worst < s.score)
+                    _this.stats.worst = s.score;
+                _this.stats.average += s.score;
+            });
+            if (this.stats.scores.length > 0)
+                this.stats.average /= this.stats.scores.length;
+            console.log(this.stats);
+            this.stats.generations++;
+            this.stats.scores = [];
             this.networks = this.evo.nextGeneration();
-            console.log(this.networks.length, this.landers.length);
             for (var i = 0; i < this.networks.length; i++) {
                 var l = this.landers[i];
                 if (!l) {
@@ -380,6 +431,8 @@ var nnlunar;
                 l.rotation = this.start.rotation;
                 l.fuel = this.start.fuel;
             }
+            if (this.landers.length > this.networks.length)
+                this.landers.splice(this.networks.length, this.landers.length - this.networks.length);
         };
         LunarGameRaw.prototype.render = function () {
             var c = this.context;
