@@ -5,26 +5,27 @@
         simulationMul = 32;
       
         start = {
-            x: 400,
+            x: 200,
             y: 200,
             rotation: 0,
-            fuel: 100
+            fuel: 400
         };
                 
         target = {            
-            x: 200,
+            x: 600,
             y: 600,
-            left: 200 - 40,
-            right: 200 + 40,
+            left: 600 - 40,
+            right: 600 + 40,
             minVel: 0.15,
             minAng: 5
         };
 
         calcFunc = (l: Lander, n: nnpoc.Network): void => {            
             var result = n.calculate([
-                nnpoc.lerpInv(l.pos.x, this.start.x, this.target.x),
+                nnpoc.lerpInv(l.pos.x, -80, 80),
                 nnpoc.lerpInv(l.pos.y, this.start.y, this.target.y),
                 nnpoc.lerpInv(l.rotation, -90, 90),
+                nnpoc.lerpInv(l.vel.x, -0.35, 0.35),
                 nnpoc.lerpInv(l.vel.y, -0.35, 0.35),
                 nnpoc.lerpInv(l.fuel, 0, this.start.fuel)
             ]);
@@ -36,23 +37,27 @@
             var score = 0;
             if (l.exploding)
                 score += 3;
-            score += Math.pow((l.pos.x - this.target.x) / (this.target.x - this.start.x), 2);
-            score += Math.pow(l.vel.y / 0.7, 2);
-            score += Math.pow(l.rotation / 180 , 2);
-            console.log(score, (l.pos.x - this.target.x) / (this.target.x - this.start.x), l.vel.y / 0.7, l.rotation / 180);
+            var dx = (l.pos.x - this.target.x) / 80;
+            var dvy = l.vel.y / 0.35;
+            var dr = l.rotation / 90;
+
+            score += dx * dx;
+            score += dvy * dvy;
+            score += dr * dr;
+            console.log(score, l.pos.x - this.target.x, l.vel.y, l.rotation, dx, dvy, dr);
             return score;
         }    
 
         evoOptions: nnpoc.NeuroevolutionOptions = {
-            population: 50,
+            population: 100,
             elitism: 0.2,
             randomBehaviour: 0.2,
             mutationRate: 0.1,
             mutationRange: 0.5,
             nbChild: 1,
             network: {
-                inputs: 5,
-                hiddens: [3, 3],
+                inputs: 6,
+                hiddens: [8, 8, 8],
                 outputs: 2,
                 randomClamped: () => { return Math.random() * 8 - 4; }
             }
