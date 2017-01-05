@@ -13,8 +13,8 @@ var nnlunar;
             this.topSpeed = 0.35;
             this.drag = 0.9997;
             this.bouncing = 0;
-            this.landed = 0;
-            this.crashed = 0;
+            this.landed = false;
+            this.crashed = false;
             this.exploding = false;
             this.explodingCounter = 0;
             this.targetRotation = 0;
@@ -40,8 +40,8 @@ var nnlunar;
             this.scale = 1;
             this.thrustBuild = 0;
             this.bouncing = 0;
-            this.landed = 0;
-            this.crashed = 0;
+            this.landed = false;
+            this.crashed = false;
             this.active = true;
             this.exploding = false;
             this.explodingCounter = 0;
@@ -100,8 +100,8 @@ var nnlunar;
         };
         Lander.prototype.crash = function () {
             //console.log("crash", this.pos.toString(), this.vel.toString(), this.rotation);         
-            this.landed = 0;
-            this.crashed = 1;
+            this.landed = false;
+            this.crashed = true;
             this.active = false;
             this.exploding = true;
             this.explodingCounter = 0;
@@ -110,8 +110,8 @@ var nnlunar;
         };
         Lander.prototype.land = function () {
             //console.log("land", this.pos.toString(), this.vel.toString(), this.rotation);
-            this.landed = 1;
-            this.crashed = 0;
+            this.landed = true;
+            this.crashed = false;
             this.active = false;
             this.thrustBuild = 0;
             this.color = 'green';
@@ -256,7 +256,14 @@ var nnlunar;
             var _this = this;
             this.SCREEN_WIDTH = 800;
             this.SCREEN_HEIGHT = 800;
-            this.simulationMul = 128;
+            this.simulationMul = 256;
+            this.displayIndex = 10;
+            this.world = {
+                left: 0,
+                right: 800,
+                top: 0,
+                bottom: 800
+            };
             this.start = {
                 x: 200,
                 y: 200,
@@ -273,11 +280,11 @@ var nnlunar;
             };
             this.evoOptions = {
                 population: 100,
-                elitism: 0.2,
-                randomBehaviour: 0.2,
-                mutationRate: 0.1,
+                elitism: 0.3,
+                randomBehaviour: 0.1,
+                mutationRate: 0.2,
                 mutationRange: 0.5,
-                nbChild: 1,
+                nbChild: 2,
                 network: {
                     inputs: 6,
                     hiddens: [8, 8, 8],
@@ -333,8 +340,15 @@ var nnlunar;
                             else {
                                 l.crash();
                             }
+                        }
+                        if (!l.active) {
                             var score = _this.scoreFunc(l);
-                            _this.stats.scores.push({ score: score, data: _this.statFunc(l) });
+                            _this.stats.scores.push({
+                                score: score,
+                                landed: l.landed,
+                                crashed: l.crashed,
+                                data: _this.statFunc(l)
+                            });
                             _this.evo.networkScore(_this.networks[i], score);
                         }
                     }
@@ -360,7 +374,7 @@ var nnlunar;
         LunarGameRaw.prototype.calcFunc = function (l, n) {
             var result = n.calculate([
                 nnpoc.lerpInv(l.pos.x, 0, 800),
-                nnpoc.lerpInv(l.pos.y, this.start.y, this.target.y),
+                nnpoc.lerpInv(l.pos.y, 0, 800),
                 nnpoc.lerpInv(l.rotation, -90, 90),
                 nnpoc.lerpInv(l.vel.x, -0.35, 0.35),
                 nnpoc.lerpInv(l.vel.y, -0.35, 0.35),
@@ -383,8 +397,6 @@ var nnlunar;
         };
         LunarGameRaw.prototype.statFunc = function (l) {
             return {
-                landed: l.landed,
-                crashed: l.crashed,
                 x: l.pos.x,
                 y: l.pos.y,
                 r: l.rotation,
@@ -403,9 +415,9 @@ var nnlunar;
             this.stats.average = 0;
             this.stats.population = this.stats.scores.length;
             this.stats.scores.forEach(function (s) {
-                if (s.data.landed)
+                if (s.landed)
                     _this.stats.landed++;
-                if (s.data.crashed)
+                if (s.crashed)
                     _this.stats.crashed++;
                 if (_this.stats.best > s.score)
                     _this.stats.best = s.score;
@@ -458,7 +470,7 @@ var nnlunar;
             c.moveTo(this.target.left, this.target.y);
             c.lineTo(this.target.right, this.target.y);
             c.stroke();
-            for (var i = 0, len = this.landers.length; i < len; i++) {
+            for (var i = 0, len = Math.min(this.landers.length, this.displayIndex); i < len; i++) {
                 this.renderer.render(this.landers[i], c, view.scale);
             }
             c.restore();

@@ -2,7 +2,15 @@
     export class LunarGameRaw {
         SCREEN_WIDTH = 800;
         SCREEN_HEIGHT = 800;
-        simulationMul = 128;
+        simulationMul = 256;
+        displayIndex = 10;
+
+        world = {
+            left: 0,
+            right: 800,
+            top: 0,
+            bottom: 800
+        };
 
         start = {
             x: 200,
@@ -23,7 +31,7 @@
         calcFunc(l: Lander, n: nnpoc.Network): void {
             var result = n.calculate([
                 nnpoc.lerpInv(l.pos.x, 0, 800),
-                nnpoc.lerpInv(l.pos.y, this.start.y, this.target.y),
+                nnpoc.lerpInv(l.pos.y, 0, 800),
                 nnpoc.lerpInv(l.rotation, -90, 90),
                 nnpoc.lerpInv(l.vel.x, -0.35, 0.35),
                 nnpoc.lerpInv(l.vel.y, -0.35, 0.35),
@@ -49,8 +57,6 @@
 
         statFunc(l: Lander): any {
             return {
-                landed: l.landed,
-                crashed: l.crashed,
                 x: l.pos.x,
                 y: l.pos.y,
                 r: l.rotation,
@@ -62,11 +68,11 @@
 
         evoOptions: nnpoc.NeuroevolutionOptions = {
             population: 100,
-            elitism: 0.2,
-            randomBehaviour: 0.2,
-            mutationRate: 0.1,
+            elitism: 0.3,
+            randomBehaviour: 0.1,
+            mutationRate: 0.2,
             mutationRange: 0.5,
-            nbChild: 1,
+            nbChild: 2,
             network: {
                 inputs: 6,
                 hiddens: [8, 8, 8],
@@ -101,7 +107,9 @@
             worst: 0,
             scores: [] as {
                 score: number,
-                data: any
+                landed: boolean,
+                crashed: boolean,
+                data: {}
             }[]
         };
 
@@ -130,9 +138,9 @@
             this.stats.population = this.stats.scores.length;
 
             this.stats.scores.forEach(s => {
-                if (s.data.landed)
+                if (s.landed)
                     this.stats.landed++;
-                if (s.data.crashed)
+                if (s.crashed)
                     this.stats.crashed++;
                 if (this.stats.best > s.score)
                     this.stats.best = s.score;
@@ -204,12 +212,19 @@
                         else {
                             l.crash();
                         }
+                    }
 
+                    if (!l.active) {
                         var score = this.scoreFunc(l);
-                        this.stats.scores.push({ score: score, data: this.statFunc(l) });
+                        this.stats.scores.push({
+                            score: score,
+                            landed: l.landed,
+                            crashed: l.crashed,
+                            data: this.statFunc(l)
+                        });
                         this.evo.networkScore(this.networks[i], score);
                     }
-                }
+                }                
 
                 if (l.active) {
                     allAreDead = false;
@@ -248,7 +263,7 @@
             c.lineTo(this.target.right, this.target.y);
             c.stroke();
 
-            for (let i = 0, len = this.landers.length; i < len; i++) {
+            for (let i = 0, len = Math.min(this.landers.length, this.displayIndex); i < len; i++) {
                 this.renderer.render(this.landers[i], c, view.scale);
             }
 
