@@ -80,7 +80,7 @@
     <TypeScriptCompile Include="Scripts\nnpoc\Genome.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\Graph.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\Layer.ts" />
-    <TypeScriptCompile Include="Scripts\nnpoc\MathH.ts" />
+    <TypeScriptCompile Include="Scripts\nnpoc\nnpoc.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\Network.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\Edge.ts" />
     <TypeScriptCompile Include="Scripts\nnpoc\NetworkOptions.ts" />

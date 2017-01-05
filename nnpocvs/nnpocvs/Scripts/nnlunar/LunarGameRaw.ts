@@ -2,10 +2,9 @@
     export class LunarGameRaw {
         SCREEN_WIDTH = 800;
         SCREEN_HEIGHT = 800;
-        simulationMul = 8;
-        populationSize = 50;
+        simulationMul = 16;                
         start = new Vector2(400, 200);
-        langscape = 600;
+        startingFuel = 100;        
         target = {
             left: 340,
             right: 460,
@@ -14,10 +13,27 @@
             minAng: 5
         };
 
+        evoOptions: nnpoc.NeuroevolutionOptions = {
+            population: 50,
+            elitism: 0.2,
+            randomBehaviour: 0.2,
+            mutationRate: 0.1,
+            mutationRange: 0.5,
+            nbChild: 1,
+            network: {
+                inputs: 3,
+                hiddens: [3, 3],
+                outputs: 1,
+                randomClamped: () => { return Math.random() * 8 - 4; }
+            }
+        };
+
         canvas: HTMLCanvasElement;
         context: CanvasRenderingContext2D;
         renderer: LanderRenderer;
         landers: Lander[];
+        evo: nnpoc.Neuroevolution;
+        networks: nnpoc.Network[];
         view = {
             x: 0,
             y: 0,
@@ -36,18 +52,34 @@
             this.canvas.height = this.SCREEN_HEIGHT;
             this.canvas.style.backgroundColor = "#000000";
             this.renderer = new LanderRenderer();
+            this.evo = new nnpoc.Neuroevolution(this.evoOptions);
 
             this.landers = [];
-            for (let i = 0; i < this.populationSize; i++) {
-                var l = new Lander();
+            for (let i = 0; i < this.evoOptions.population; i++) {
+                this.landers.push(new Lander());
+            }
+
+            this.reset();
+            this.loop();
+        }
+
+        reset(): void {
+            this.networks = this.evo.nextGeneration();            
+
+            console.log(this.networks.length, this.landers.length);            
+
+            for (let i = 0; i < this.networks.length; i++) {
+                var l = this.landers[i];                
+                if (!l) {
+                    l = new Lander();
+                    this.landers.push(l);
+                }
+
                 l.reset();
                 l.pos.x = this.start.x;
                 l.pos.y = this.start.y;
-                l.fuel = 100;
-                this.landers.push(l);
+                l.fuel = this.startingFuel;                
             }
-
-            this.loop();
         }
 
         loop = (): void => {
@@ -60,17 +92,21 @@
             this.render();
         }
 
-        update(): void {
+        update = (): void => {
+            var allAreDead = true;
+
             for (let i = 0, len = this.landers.length; i < len; i++) {
                 var l = this.landers[i];
 
                 if (l.active) {
-                    if (Math.random() < 0.001)
-                        l.thrust(1);
-                    if (Math.random() < 0.001)
-                        l.rotate(1);
-                    if (Math.random() < 0.001)
-                        l.rotate(-1);
+                    var network = this.networks[i];
+                    var result = network.calculate([
+                        nnpoc.lerpInv(l.pos.y, 0, 200),
+                        nnpoc.lerpInv(l.vel.y, -0.35, 0.35),
+                        nnpoc.lerpInv(l.fuel, 0, this.startingFuel)                        
+                    ]);
+                    var power = clamp(result[0], 0, 1);
+                    l.thrust(power);
                 }
 
                 l.update();
@@ -89,9 +125,20 @@
                         else {
                             l.crash();
                         }
+
+                        var score = l.vel.y * l.vel.y + l.rotation * l.rotation;
+                        console.log(score, l.vel.y, l.rotation, l.fuel);
+                        this.evo.networkScore(this.networks[i], score);
                     }
                 }
+
+                if (l.active) {
+                    allAreDead = false;
+                }
             }
+
+            if (allAreDead)
+                this.reset();
         }
 
         render(): void {

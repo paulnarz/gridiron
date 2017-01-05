@@ -63,7 +63,7 @@
 
             points.forEach(p => {
                 var z = network.calculate([p.x, p.y])[0];
-                z = MathH.expand(z, min, max);
+                z = lerp(z, min, max);
 
                 data.push({
                     x: p.x,
@@ -138,7 +138,7 @@
                                 from: fromID,
                                 to: id,
                                 label: (e.weight || 0).toFixed(2),
-                                color: nnpoc.Color.getValueColor(nnpoc.MathH.normalize(e.weight, -4, 4))
+                                color: nnpoc.Color.getValueColor(nnpoc.lerpInv(e.weight, -4, 4))
                             });
                         })
                     }

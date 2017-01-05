@@ -95,7 +95,7 @@ var nnlunar;
             this.thrustLevel = this.thrustBuild;
         };
         Lander.prototype.crash = function () {
-            console.log("crash", this.pos.toString(), this.vel.toString(), this.rotation);
+            //console.log("crash", this.pos.toString(), this.vel.toString(), this.rotation);
             this.rotation = this.targetRotation = 0;
             this.active = false;
             this.exploding = true;
@@ -104,7 +104,7 @@ var nnlunar;
             this.color = 'red';
         };
         Lander.prototype.land = function () {
-            console.log("land", this.pos.toString(), this.vel.toString(), this.rotation);
+            //console.log("land", this.pos.toString(), this.vel.toString(), this.rotation);
             this.active = false;
             this.thrustBuild = 0;
             this.color = 'green';
@@ -247,16 +247,29 @@ var nnlunar;
             var _this = this;
             this.SCREEN_WIDTH = 800;
             this.SCREEN_HEIGHT = 800;
-            this.simulationMul = 8;
-            this.populationSize = 50;
+            this.simulationMul = 16;
             this.start = new nnlunar.Vector2(400, 200);
-            this.langscape = 600;
+            this.startingFuel = 100;
             this.target = {
                 left: 340,
                 right: 460,
                 y: 600,
                 minVel: 0.15,
                 minAng: 5
+            };
+            this.evoOptions = {
+                population: 50,
+                elitism: 0.2,
+                randomBehaviour: 0.2,
+                mutationRate: 0.1,
+                mutationRange: 0.5,
+                nbChild: 1,
+                network: {
+                    inputs: 3,
+                    hiddens: [3, 3],
+                    outputs: 1,
+                    randomClamped: function () { return Math.random() * 8 - 4; }
+                }
             };
             this.view = {
                 x: 0,
@@ -274,6 +287,47 @@ var nnlunar;
                 }
                 _this.render();
             };
+            this.update = function () {
+                var allAreDead = true;
+                for (var i = 0, len = _this.landers.length; i < len; i++) {
+                    var l = _this.landers[i];
+                    if (l.active) {
+                        var network = _this.networks[i];
+                        var result = network.calculate([
+                            nnpoc.lerpInv(l.pos.y, 0, 200),
+                            nnpoc.lerpInv(l.vel.y, -0.35, 0.35),
+                            nnpoc.lerpInv(l.fuel, 0, _this.startingFuel)
+                        ]);
+                        var power = nnlunar.clamp(result[0], 0, 1);
+                        l.thrust(power);
+                    }
+                    l.update();
+                    if (l.active) {
+                        //check collision
+                        if (l.bottom >= _this.target.y) {
+                            if ((l.left > _this.target.left) && (l.right < _this.target.right)) {
+                                if ((Math.abs(l.rotation) <= _this.target.minAng) && (l.vel.y <= _this.target.minVel)) {
+                                    l.land();
+                                }
+                                else {
+                                    l.crash();
+                                }
+                            }
+                            else {
+                                l.crash();
+                            }
+                            var score = l.vel.y * l.vel.y + l.rotation * l.rotation;
+                            console.log(score, l.vel.y, l.rotation, l.fuel);
+                            _this.evo.networkScore(_this.networks[i], score);
+                        }
+                    }
+                    if (l.active) {
+                        allAreDead = false;
+                    }
+                }
+                if (allAreDead)
+                    _this.reset();
+            };
             this.canvas = document.createElement('canvas');
             this.context = this.canvas.getContext('2d');
             document.body.appendChild(this.canvas);
@@ -281,45 +335,27 @@ var nnlunar;
             this.canvas.height = this.SCREEN_HEIGHT;
             this.canvas.style.backgroundColor = "#000000";
             this.renderer = new nnlunar.LanderRenderer();
+            this.evo = new nnpoc.Neuroevolution(this.evoOptions);
             this.landers = [];
-            for (var i = 0; i < this.populationSize; i++) {
-                var l = new nnlunar.Lander();
+            for (var i = 0; i < this.evoOptions.population; i++) {
+                this.landers.push(new nnlunar.Lander());
+            }
+            this.reset();
+            this.loop();
+        }
+        LunarGameRaw.prototype.reset = function () {
+            this.networks = this.evo.nextGeneration();
+            console.log(this.networks.length, this.landers.length);
+            for (var i = 0; i < this.networks.length; i++) {
+                var l = this.landers[i];
+                if (!l) {
+                    l = new nnlunar.Lander();
+                    this.landers.push(l);
+                }
                 l.reset();
                 l.pos.x = this.start.x;
                 l.pos.y = this.start.y;
-                l.fuel = 100;
-                this.landers.push(l);
-            }
-            this.loop();
-        }
-        LunarGameRaw.prototype.update = function () {
-            for (var i = 0, len = this.landers.length; i < len; i++) {
-                var l = this.landers[i];
-                if (l.active) {
-                    if (Math.random() < 0.001)
-                        l.thrust(1);
-                    if (Math.random() < 0.001)
-                        l.rotate(1);
-                    if (Math.random() < 0.001)
-                        l.rotate(-1);
-                }
-                l.update();
-                if (l.active) {
-                    //check collision
-                    if (l.bottom >= this.target.y) {
-                        if ((l.left > this.target.left) && (l.right < this.target.right)) {
-                            if ((Math.abs(l.rotation) <= this.target.minAng) && (l.vel.y <= this.target.minVel)) {
-                                l.land();
-                            }
-                            else {
-                                l.crash();
-                            }
-                        }
-                        else {
-                            l.crash();
-                        }
-                    }
-                }
+                l.fuel = this.startingFuel;
             }
         };
         LunarGameRaw.prototype.render = function () {
@@ -599,7 +635,7 @@ var nnpoc;
         };
         FuncTrainer.prototype.calc = function (x, y) {
             var z = this.getBest().calculate([x, y])[0];
-            return nnpoc.MathH.expand(z, this.FuncMin, this.FuncMax);
+            return nnpoc.lerp(z, this.FuncMin, this.FuncMax);
         };
         FuncTrainer.prototype.train = function () {
             var _this = this;
@@ -609,7 +645,7 @@ var nnpoc;
                 var score = 0;
                 _this.Points.forEach(function (p) {
                     var tv = _this.TargetFunc(p.x, p.y);
-                    var nv = nnpoc.MathH.expand(network.calculate([p.x, p.y])[0], _this.FuncMin, _this.FuncMax);
+                    var nv = nnpoc.lerp(network.calculate([p.x, p.y])[0], _this.FuncMin, _this.FuncMax);
                     score += (tv - nv) * (tv - nv);
                 });
                 _this.NEvo.networkScore(network, score);
@@ -682,7 +718,7 @@ var nnpoc;
             var data = [];
             points.forEach(function (p) {
                 var z = network.calculate([p.x, p.y])[0];
-                z = nnpoc.MathH.expand(z, min, max);
+                z = nnpoc.lerp(z, min, max);
                 data.push({
                     x: p.x,
                     y: p.y,
@@ -741,7 +777,7 @@ var nnpoc;
                                 from: fromID,
                                 to: id,
                                 label: (e.weight || 0).toFixed(2),
-                                color: nnpoc.Color.getValueColor(nnpoc.MathH.normalize(e.weight, -4, 4))
+                                color: nnpoc.Color.getValueColor(nnpoc.lerpInv(e.weight, -4, 4))
                             });
                         });
                     }
@@ -772,21 +808,6 @@ var nnpoc;
         return Layer;
     }());
     nnpoc.Layer = Layer;
-})(nnpoc || (nnpoc = {}));
-var nnpoc;
-(function (nnpoc) {
-    var MathH = (function () {
-        function MathH() {
-        }
-        MathH.normalize = function (value, min, max) {
-            return ((value || 0) + min) / (max - min);
-        };
-        MathH.expand = function (value, min, max) {
-            return (value || 0) * (max - min) + min;
-        };
-        return MathH;
-    }());
-    nnpoc.MathH = MathH;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
 (function (nnpoc) {
@@ -1000,6 +1021,19 @@ var nnpoc;
         return Neuron;
     }());
     nnpoc.Neuron = Neuron;
+})(nnpoc || (nnpoc = {}));
+var nnpoc;
+(function (nnpoc) {
+    /** converts a value between min and max to value between 0 and 1 */
+    function lerpInv(value, min, max) {
+        return ((value || 0) - min) / (max - min);
+    }
+    nnpoc.lerpInv = lerpInv;
+    /** converts a value between 0 and 1 to a value between min and max */
+    function lerp(value, min, max) {
+        return (value || 0) * (max - min) + min;
+    }
+    nnpoc.lerp = lerp;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
 (function (nnpoc) {

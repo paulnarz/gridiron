@@ -57,7 +57,7 @@
 
         calc(x: number, y: number): number {
             var z = this.getBest().calculate([x, y])[0];            
-            return MathH.expand(z, this.FuncMin, this.FuncMax);
+            return lerp(z, this.FuncMin, this.FuncMax);
         }
 
         train(): void {
@@ -69,7 +69,7 @@
 
                 this.Points.forEach(p => {
                     var tv = this.TargetFunc(p.x, p.y);
-                    var nv = MathH.expand(network.calculate([p.x, p.y])[0], this.FuncMin, this.FuncMax);
+                    var nv = lerp(network.calculate([p.x, p.y])[0], this.FuncMin, this.FuncMax);
                     score += (tv - nv) * (tv - nv);
                 });
 

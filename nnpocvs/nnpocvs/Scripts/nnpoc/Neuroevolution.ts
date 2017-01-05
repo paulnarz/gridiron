@@ -1,5 +1,5 @@
 ﻿module nnpoc {
-    interface NeuroevolutionOptions {
+    export interface NeuroevolutionOptions {
         population: number;
         elitism: number;
         randomBehaviour: number;

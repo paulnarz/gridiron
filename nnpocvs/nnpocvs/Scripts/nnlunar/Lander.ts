@@ -101,7 +101,7 @@
         }
 
         crash(): void {
-            console.log("crash", this.pos.toString(), this.vel.toString(), this.rotation);
+            //console.log("crash", this.pos.toString(), this.vel.toString(), this.rotation);
             this.rotation = this.targetRotation = 0;
             this.active = false;
             this.exploding = true;
@@ -111,7 +111,7 @@
         }
 
         land(): void {
-            console.log("land", this.pos.toString(), this.vel.toString(), this.rotation);
+            //console.log("land", this.pos.toString(), this.vel.toString(), this.rotation);
             this.active = false;
             this.thrustBuild = 0;
             this.color = 'green';
