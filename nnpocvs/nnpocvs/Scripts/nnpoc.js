@@ -106,7 +106,6 @@ var nnlunar;
             this.exploding = true;
             this.explodingCounter = 0;
             this.thrustBuild = 0;
-            this.color = 'red';
         };
         Lander.prototype.land = function () {
             //console.log("land", this.pos.toString(), this.vel.toString(), this.rotation);
@@ -180,7 +179,7 @@ var nnlunar;
                 this.shapeVels[i].rotate(-45, false);
             }
         };
-        LanderRenderer.prototype.render = function (l, c, scale) {
+        LanderRenderer.prototype.render = function (l, c, scale, color) {
             if (l.explodingCounter > 60)
                 return;
             c.save();
@@ -188,7 +187,7 @@ var nnlunar;
             c.scale(l.scale, l.scale);
             c.lineWidth = 1 / (l.scale * scale);
             c.rotate(l.rotation * nnlunar.Vector2.TO_RADIANS);
-            c.strokeStyle = l.color;
+            c.strokeStyle = color || l.color;
             c.beginPath();
             this.renderShapes(c, l.explodingCounter);
             if ((l.thrustBuild > 0) && (l.active)) {
@@ -232,22 +231,10 @@ var nnlunar;
 })(nnlunar || (nnlunar = {}));
 var nnlunar;
 (function (nnlunar) {
-    var LunarGamePhaser = (function () {
-        function LunarGamePhaser() {
-            this.game = new Phaser.Game(800, 600, Phaser.AUTO, "content", {
-                preload: this.preload,
-                create: this.create
-            });
-        }
-        LunarGamePhaser.prototype.preload = function () {
-            console.log("preload");
-        };
-        LunarGamePhaser.prototype.create = function () {
-            console.log("create");
-        };
-        return LunarGamePhaser;
-    }());
-    nnlunar.LunarGamePhaser = LunarGamePhaser;
+    function clamp(value, min, max) {
+        return (value < min) ? min : (value > max) ? max : value;
+    }
+    nnlunar.clamp = clamp;
 })(nnlunar || (nnlunar = {}));
 var nnlunar;
 (function (nnlunar) {
@@ -256,8 +243,13 @@ var nnlunar;
             var _this = this;
             this.SCREEN_WIDTH = 800;
             this.SCREEN_HEIGHT = 800;
-            this.simulationMul = 256;
-            this.displayIndex = 10;
+            this.simSteps = 128;
+            this.simDisplay = 50;
+            this.simColor = "#7F7F7F";
+            this.bestSteps = 4;
+            this.bestDisplay = 5;
+            this.bestColor = "#FFFFFF";
+            this.bestExtraTime = 1200;
             this.world = {
                 left: 0,
                 right: 800,
@@ -311,19 +303,48 @@ var nnlunar;
                 worst: 0,
                 scores: []
             };
+            this.bestCounter = 0;
+            this.lastLoopTime = Date.now();
             this.loop = function () {
+                //var start = Date.now();
+                //var elapsed = start - this.lastLoopTime;
                 requestAnimationFrame(_this.loop);
-                for (var j = 0; j < _this.simulationMul; j++) {
-                    _this.update();
+                for (var j = 0; j < _this.simSteps; j++) {
+                    if (!_this.update(_this.evoLanders, _this.evoNetworks, _this.evo)) {
+                        _this.evolve();
+                        _this.resetLanders(_this.evoLanders, _this.evoNetworks);
+                    }
                 }
+                for (var j = 0; j < _this.bestSteps; j++) {
+                    var stillActive = _this.update(_this.bestLanders, _this.bestNetworks, undefined);
+                    //if (stillActive && this.bestLanders.length > 0 && !this.bestLanders[0].active) {
+                    //    this.bestCounter++;
+                    //    if (this.bestCounter >= this.bestExtraTime)
+                    //        stillActive = false;
+                    //}
+                    if (!stillActive) {
+                        _this.getBest(_this.evoNetworks, _this.bestNetworks, _this.bestDisplay);
+                        _this.resetLanders(_this.bestLanders, _this.bestNetworks);
+                        _this.bestCounter = 0;
+                    }
+                }
+                //var updateTime = Date.now() - start;
+                //start = Date.now();
                 _this.render();
+                //var renderTime = Date.now() - start;
+                //console.log({
+                //    elapsed: start - this.lastLoopTime,
+                //    updateTime: updateTime,
+                //    renderTime: renderTime
+                //});
+                //this.lastLoopTime = Date.now();
             };
-            this.update = function () {
-                var allAreDead = true;
-                for (var i = 0, len = _this.landers.length; i < len; i++) {
-                    var l = _this.landers[i];
+            this.update = function (landers, networks, evo) {
+                var activeLanders = false;
+                for (var i = 0, len = landers.length; i < len; i++) {
+                    var l = landers[i];
                     if (l.active) {
-                        _this.calcFunc(l, _this.networks[i]);
+                        _this.calcFunc(l, networks[i]);
                     }
                     l.update();
                     if (l.active) {
@@ -341,7 +362,7 @@ var nnlunar;
                                 l.crash();
                             }
                         }
-                        if (!l.active) {
+                        if (evo && !l.active) {
                             var score = _this.scoreFunc(l);
                             _this.stats.scores.push({
                                 score: score,
@@ -349,15 +370,14 @@ var nnlunar;
                                 crashed: l.crashed,
                                 data: _this.statFunc(l)
                             });
-                            _this.evo.networkScore(_this.networks[i], score);
+                            evo.networkScore(networks[i], score);
                         }
                     }
                     if (l.active) {
-                        allAreDead = false;
+                        activeLanders = true;
                     }
                 }
-                if (allAreDead)
-                    _this.reset();
+                return activeLanders;
             };
             this.canvas = document.createElement('canvas');
             this.context = this.canvas.getContext('2d');
@@ -367,8 +387,13 @@ var nnlunar;
             this.canvas.style.backgroundColor = "#000000";
             this.renderer = new nnlunar.LanderRenderer();
             this.evo = new nnpoc.Neuroevolution(this.evoOptions);
-            this.landers = [];
-            this.reset();
+            this.evoLanders = [];
+            this.bestLanders = [];
+            this.bestNetworks = [];
+            this.evolve();
+            this.resetLanders(this.evoLanders, this.evoNetworks);
+            this.getBest(this.evoNetworks, this.bestNetworks, 0);
+            this.resetLanders(this.bestLanders, this.bestNetworks);
             this.loop();
         }
         LunarGameRaw.prototype.calcFunc = function (l, n) {
@@ -405,7 +430,7 @@ var nnlunar;
                 vy: l.vel.y,
             };
         };
-        LunarGameRaw.prototype.reset = function () {
+        LunarGameRaw.prototype.evolve = function () {
             var _this = this;
             this.stats.scores.sort(function (a, b) { return a.score - b.score; });
             this.stats.landed = 0;
@@ -430,12 +455,14 @@ var nnlunar;
             console.log(this.stats);
             this.stats.generations++;
             this.stats.scores = [];
-            this.networks = this.evo.nextGeneration();
-            for (var i = 0; i < this.networks.length; i++) {
-                var l = this.landers[i];
+            this.evoNetworks = this.evo.nextGeneration();
+        };
+        LunarGameRaw.prototype.resetLanders = function (landers, networks) {
+            for (var i = 0; i < networks.length; i++) {
+                var l = landers[i];
                 if (!l) {
                     l = new nnlunar.Lander();
-                    this.landers.push(l);
+                    landers.push(l);
                 }
                 l.reset();
                 l.pos.x = this.start.x;
@@ -443,8 +470,15 @@ var nnlunar;
                 l.rotation = this.start.rotation;
                 l.fuel = this.start.fuel;
             }
-            if (this.landers.length > this.networks.length)
-                this.landers.splice(this.networks.length, this.landers.length - this.networks.length);
+            if (landers.length > networks.length)
+                landers.splice(networks.length, landers.length - networks.length);
+        };
+        LunarGameRaw.prototype.getBest = function (soure, dest, amount) {
+            for (var i = 0, l = Math.min(amount, soure.length); i < l; i++) {
+                dest[i] = soure[i].clone();
+            }
+            if (dest.length > soure.length)
+                dest.splice(soure.length, dest.length - soure.length);
         };
         LunarGameRaw.prototype.render = function () {
             var c = this.context;
@@ -454,24 +488,27 @@ var nnlunar;
             c.translate(view.x, view.y);
             c.scale(view.scale, view.scale);
             //draw start
-            c.strokeStyle = 'white';
+            c.strokeStyle = "#FF0000";
             c.beginPath();
             c.arc(this.start.x, this.start.y, 1, 0, 90);
             c.stroke();
             //draw langscape
-            c.strokeStyle = 'grey';
+            c.strokeStyle = "#FFFFFF";
             c.beginPath();
             c.moveTo(0, this.target.y);
             c.lineTo(this.SCREEN_WIDTH, this.target.y);
             c.stroke();
-            c.strokeStyle = 'green';
+            c.strokeStyle = "#00FF00";
             c.lineWidth = 5;
             c.beginPath();
             c.moveTo(this.target.left, this.target.y);
             c.lineTo(this.target.right, this.target.y);
             c.stroke();
-            for (var i = 0, len = Math.min(this.landers.length, this.displayIndex); i < len; i++) {
-                this.renderer.render(this.landers[i], c, view.scale);
+            for (var i = 0, len = Math.min(this.evoLanders.length, this.simDisplay); i < len; i++) {
+                this.renderer.render(this.evoLanders[i], c, view.scale, this.simColor);
+            }
+            for (var i = 0, len = Math.min(this.bestLanders.length, this.bestDisplay); i < len; i++) {
+                this.renderer.render(this.bestLanders[i], c, view.scale, this.bestColor);
             }
             c.restore();
         };
@@ -481,10 +518,22 @@ var nnlunar;
 })(nnlunar || (nnlunar = {}));
 var nnlunar;
 (function (nnlunar) {
-    function clamp(value, min, max) {
-        return (value < min) ? min : (value > max) ? max : value;
-    }
-    nnlunar.clamp = clamp;
+    var LunarGamePhaser = (function () {
+        function LunarGamePhaser() {
+            this.game = new Phaser.Game(800, 600, Phaser.AUTO, "content", {
+                preload: this.preload,
+                create: this.create
+            });
+        }
+        LunarGamePhaser.prototype.preload = function () {
+            console.log("preload");
+        };
+        LunarGamePhaser.prototype.create = function () {
+            console.log("create");
+        };
+        return LunarGamePhaser;
+    }());
+    nnlunar.LunarGamePhaser = LunarGamePhaser;
 })(nnlunar || (nnlunar = {}));
 var nnlunar;
 (function (nnlunar) {
@@ -667,15 +716,6 @@ var nnpoc;
         return Color;
     }());
     nnpoc.Color = Color;
-})(nnpoc || (nnpoc = {}));
-var nnpoc;
-(function (nnpoc) {
-    var Edge = (function () {
-        function Edge() {
-        }
-        return Edge;
-    }());
-    nnpoc.Edge = Edge;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
 (function (nnpoc) {
@@ -899,6 +939,19 @@ var nnpoc;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
 (function (nnpoc) {
+    /** converts a value between min and max to value between 0 and 1 */
+    function lerpInv(value, min, max) {
+        return ((value || 0) - min) / (max - min);
+    }
+    nnpoc.lerpInv = lerpInv;
+    /** converts a value between 0 and 1 to a value between min and max */
+    function lerp(value, min, max) {
+        return (value || 0) * (max - min) + min;
+    }
+    nnpoc.lerp = lerp;
+})(nnpoc || (nnpoc = {}));
+var nnpoc;
+(function (nnpoc) {
     var Network = (function () {
         function Network() {
         }
@@ -993,9 +1046,23 @@ var nnpoc;
                 previousNeurons = neurons;
             });
         };
+        Network.prototype.clone = function () {
+            var n = new Network();
+            n.setData(this.getData());
+            return n;
+        };
         return Network;
     }());
     nnpoc.Network = Network;
+})(nnpoc || (nnpoc = {}));
+var nnpoc;
+(function (nnpoc) {
+    var Edge = (function () {
+        function Edge() {
+        }
+        return Edge;
+    }());
+    nnpoc.Edge = Edge;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
 (function (nnpoc) {
@@ -1109,19 +1176,6 @@ var nnpoc;
         return Neuron;
     }());
     nnpoc.Neuron = Neuron;
-})(nnpoc || (nnpoc = {}));
-var nnpoc;
-(function (nnpoc) {
-    /** converts a value between min and max to value between 0 and 1 */
-    function lerpInv(value, min, max) {
-        return ((value || 0) - min) / (max - min);
-    }
-    nnpoc.lerpInv = lerpInv;
-    /** converts a value between 0 and 1 to a value between min and max */
-    function lerp(value, min, max) {
-        return (value || 0) * (max - min) + min;
-    }
-    nnpoc.lerp = lerp;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
 (function (nnpoc) {

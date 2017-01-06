@@ -2,8 +2,13 @@
     export class LunarGameRaw {
         SCREEN_WIDTH = 800;
         SCREEN_HEIGHT = 800;
-        simulationMul = 256;
-        displayIndex = 10;
+        simSteps = 128;
+        simDisplay = 50;
+        simColor = "#7F7F7F";
+        bestSteps = 4;
+        bestDisplay = 5;
+        bestColor = "#FFFFFF";
+        bestExtraTime = 1200;
 
         world = {
             left: 0,
@@ -84,9 +89,11 @@
         canvas: HTMLCanvasElement;
         context: CanvasRenderingContext2D;
         renderer: LanderRenderer;
-        landers: Lander[];
         evo: nnpoc.Neuroevolution;
-        networks: nnpoc.Network[];
+        evoLanders: Lander[];        
+        evoNetworks: nnpoc.Network[];
+        bestLanders: Lander[];
+        bestNetworks: nnpoc.Network[];
         view = {
             x: 0,
             y: 0,
@@ -113,6 +120,9 @@
             }[]
         };
 
+        bestCounter = 0;
+        lastLoopTime = Date.now();
+
         constructor() {
             this.canvas = document.createElement('canvas');
             this.context = this.canvas.getContext('2d');
@@ -123,12 +133,18 @@
             this.renderer = new LanderRenderer();
             this.evo = new nnpoc.Neuroevolution(this.evoOptions);
 
-            this.landers = [];
-            this.reset();
+            this.evoLanders = [];
+            this.bestLanders = [];
+            this.bestNetworks = [];
+            this.evolve();
+            this.resetLanders(this.evoLanders, this.evoNetworks);
+            this.getBest(this.evoNetworks, this.bestNetworks, 0);
+            this.resetLanders(this.bestLanders, this.bestNetworks);            
+            
             this.loop();
         }
-
-        reset(): void {
+        
+        evolve(): void {
             this.stats.scores.sort((a, b) => { return a.score - b.score; });
             this.stats.landed = 0;
             this.stats.crashed = 0;
@@ -156,13 +172,15 @@
 
             this.stats.generations++;
             this.stats.scores = [];
-            this.networks = this.evo.nextGeneration();
+            this.evoNetworks = this.evo.nextGeneration();
+        }
 
-            for (let i = 0; i < this.networks.length; i++) {
-                var l = this.landers[i];
+        resetLanders(landers: Lander[], networks: nnpoc.Network[]): void {
+            for (let i = 0; i < networks.length; i++) {
+                var l = landers[i];
                 if (!l) {
                     l = new Lander();
-                    this.landers.push(l);
+                    landers.push(l);
                 }
 
                 l.reset();
@@ -172,28 +190,72 @@
                 l.fuel = this.start.fuel;
             }
 
-            if (this.landers.length > this.networks.length)
-                this.landers.splice(this.networks.length, this.landers.length - this.networks.length);
+            if (landers.length > networks.length)
+                landers.splice(networks.length, landers.length - networks.length);
+        }
+
+        getBest(soure: nnpoc.Network[], dest: nnpoc.Network[], amount: number): void {
+            for (let i = 0, l = Math.min(amount, soure.length); i < l; i++) {
+                dest[i] = soure[i].clone();
+            }
+
+            if (dest.length > soure.length)
+                dest.splice(soure.length, dest.length - soure.length);
         }
 
         loop = (): void => {
+            //var start = Date.now();
+            //var elapsed = start - this.lastLoopTime;
+
             requestAnimationFrame(this.loop);
 
-            for (let j = 0; j < this.simulationMul; j++) {
-                this.update();
+            for (let j = 0; j < this.simSteps; j++) {
+                if (!this.update(this.evoLanders, this.evoNetworks, this.evo)) {
+                    this.evolve();
+                    this.resetLanders(this.evoLanders, this.evoNetworks);
+                }
             }
 
+            for (let j = 0; j < this.bestSteps; j++) {
+                var stillActive = this.update(this.bestLanders, this.bestNetworks, undefined);
+
+                //if (stillActive && this.bestLanders.length > 0 && !this.bestLanders[0].active) {
+                //    this.bestCounter++;
+                //    if (this.bestCounter >= this.bestExtraTime)
+                //        stillActive = false;
+                //}
+
+                if (!stillActive) {
+                    this.getBest(this.evoNetworks, this.bestNetworks, this.bestDisplay);
+                    this.resetLanders(this.bestLanders, this.bestNetworks);
+                    this.bestCounter = 0;
+                }
+            }
+
+            //var updateTime = Date.now() - start;
+            //start = Date.now();
+
             this.render();
+
+            //var renderTime = Date.now() - start;
+
+            //console.log({
+            //    elapsed: start - this.lastLoopTime,
+            //    updateTime: updateTime,
+            //    renderTime: renderTime
+            //});
+
+            //this.lastLoopTime = Date.now();
         }
 
-        update = (): void => {
-            var allAreDead = true;
+        update = (landers: Lander[], networks: nnpoc.Network[], evo: nnpoc.Neuroevolution): boolean => {
+            var activeLanders = false;
 
-            for (let i = 0, len = this.landers.length; i < len; i++) {
-                var l = this.landers[i];
+            for (let i = 0, len = landers.length; i < len; i++) {
+                var l = landers[i];
 
                 if (l.active) {
-                    this.calcFunc(l, this.networks[i]);
+                    this.calcFunc(l, networks[i]);
                 }
 
                 l.update();
@@ -213,8 +275,8 @@
                             l.crash();
                         }
                     }
-
-                    if (!l.active) {
+                    
+                    if (evo && !l.active) {
                         var score = this.scoreFunc(l);
                         this.stats.scores.push({
                             score: score,
@@ -222,17 +284,16 @@
                             crashed: l.crashed,
                             data: this.statFunc(l)
                         });
-                        this.evo.networkScore(this.networks[i], score);
+                        evo.networkScore(networks[i], score);
                     }
-                }                
+                }      
 
                 if (l.active) {
-                    allAreDead = false;
+                    activeLanders = true;
                 }
             }
 
-            if (allAreDead)
-                this.reset();
+            return activeLanders;
         }
 
         render(): void {
@@ -244,27 +305,31 @@
             c.scale(view.scale, view.scale);
 
             //draw start
-            c.strokeStyle = 'white';
+            c.strokeStyle = "#FF0000";
             c.beginPath();
             c.arc(this.start.x, this.start.y, 1, 0, 90);
             c.stroke();
 
             //draw langscape
-            c.strokeStyle = 'grey';
+            c.strokeStyle = "#FFFFFF";
             c.beginPath();
             c.moveTo(0, this.target.y)
             c.lineTo(this.SCREEN_WIDTH, this.target.y);
             c.stroke();
 
-            c.strokeStyle = 'green';
+            c.strokeStyle = "#00FF00";
             c.lineWidth = 5;
             c.beginPath();
             c.moveTo(this.target.left, this.target.y)
             c.lineTo(this.target.right, this.target.y);
             c.stroke();
 
-            for (let i = 0, len = Math.min(this.landers.length, this.displayIndex); i < len; i++) {
-                this.renderer.render(this.landers[i], c, view.scale);
+            for (let i = 0, len = Math.min(this.evoLanders.length, this.simDisplay); i < len; i++) {
+                this.renderer.render(this.evoLanders[i], c, view.scale, this.simColor);
+            }
+
+            for (let i = 0, len = Math.min(this.bestLanders.length, this.bestDisplay); i < len; i++) {
+                this.renderer.render(this.bestLanders[i], c, view.scale, this.bestColor);
             }
 
             c.restore();

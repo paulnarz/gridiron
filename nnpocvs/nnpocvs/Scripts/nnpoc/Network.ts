@@ -113,5 +113,11 @@
                 previousNeurons = neurons;
             });
         }
+
+        clone(): Network {
+            var n = new Network();
+            n.setData(this.getData());
+            return n;
+        }
     }
 }

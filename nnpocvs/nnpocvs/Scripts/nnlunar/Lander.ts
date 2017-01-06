@@ -111,8 +111,7 @@
             this.active = false;
             this.exploding = true;
             this.explodingCounter = 0;
-            this.thrustBuild = 0;
-            this.color = 'red';
+            this.thrustBuild = 0;            
         }
 
         land(): void {
@@ -194,7 +193,7 @@
             }
         }
 
-        render(l: Lander, c: CanvasRenderingContext2D, scale: number): void {
+        render(l: Lander, c: CanvasRenderingContext2D, scale: number, color?: string): void {
             if (l.explodingCounter > 60)
                 return;
 
@@ -203,7 +202,7 @@
             c.scale(l.scale, l.scale);
             c.lineWidth = 1 / (l.scale * scale);
             c.rotate(l.rotation * Vector2.TO_RADIANS);
-            c.strokeStyle = l.color;
+            c.strokeStyle = color || l.color;
             c.beginPath();            
             this.renderShapes(c, l.explodingCounter);
             if ((l.thrustBuild > 0) && (l.active)) {
