@@ -1,29 +1,14 @@
 ﻿module nnlunar {
     export class LunarGameRaw {
+        //world
         SCREEN_WIDTH = 800;
         SCREEN_HEIGHT = 800;
-        simSteps = 128;
-        simDisplay = 50;
-        simColor = "#7F7F7F";
-        bestSteps = 4;
-        bestDisplay = 5;
-        bestColor = "#FFFFFF";
-        bestExtraTime = 1200;
-
-        world = {
-            left: 0,
-            right: 800,
-            top: 0,
-            bottom: 800
-        };
-
         start = {
             x: 200,
             y: 200,
             rotation: 0,
             fuel: 500
         };
-
         target = {
             x: 600,
             y: 600,
@@ -31,6 +16,53 @@
             right: 600 + 40,
             minVel: 0.15,
             minAng: 5
+        };
+        view = {
+            x: 0,
+            y: 0,
+            scale: 1,
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0
+        };
+
+        //display/debug
+        simSteps = 128;
+        simDisplay = 50;
+        simColor = "#7F7F7F";
+        bestSteps = 4;
+        bestDisplay = 5;
+        bestColor = "#FFFFFF";
+        bestExtraTime = 1200;
+        discreteThurst = true;
+        logElapsed = false;
+        watch: () => void = undefined;
+        statFunc(l: Lander): any {
+            return {
+                x: l.pos.x,
+                y: l.pos.y,
+                r: l.rotation,
+                f: l.fuel,
+                vx: l.vel.x,
+                vy: l.vel.y,
+            }
+        }
+
+        //fitness
+        evoOptions: nnpoc.NeuroevolutionOptions = {
+            population: 100,
+            elitism: 0.3,
+            randomBehaviour: 0.1,
+            mutationRate: 0.2,
+            mutationRange: 0.5,
+            nbChild: 2,
+            network: {
+                inputs: 6,
+                hiddens: [22, 22],
+                outputs: 2,
+                randomClamped: () => { return Math.random() * 8 - 4; }
+            }
         };
 
         calcFunc(l: Lander, n: nnpoc.Network): void {
@@ -42,7 +74,14 @@
                 nnpoc.lerpInv(l.vel.y, -0.35, 0.35),
                 nnpoc.lerpInv(l.fuel, 0, this.start.fuel)
             ]);
-            l.thrust(result[0]);
+            if (this.discreteThurst) {
+                if (result[0] > 0.5)
+                    l.thrust(1);
+            }
+            else {
+                l.thrust(result[0]);
+            }
+            
             l.setRotation(nnpoc.lerp(result[1], -90, 90));
         }
 
@@ -60,32 +99,9 @@
             return score;
         }
 
-        statFunc(l: Lander): any {
-            return {
-                x: l.pos.x,
-                y: l.pos.y,
-                r: l.rotation,
-                f: l.fuel,
-                vx: l.vel.x,
-                vy: l.vel.y,
-            }
-        }
-
-        evoOptions: nnpoc.NeuroevolutionOptions = {
-            population: 100,
-            elitism: 0.3,
-            randomBehaviour: 0.1,
-            mutationRate: 0.2,
-            mutationRange: 0.5,
-            nbChild: 2,
-            network: {
-                inputs: 6,
-                hiddens: [8, 8, 8],
-                outputs: 2,
-                randomClamped: () => { return Math.random() * 8 - 4; }
-            }
-        };
-
+        //state
+        bestCounter = 0;
+        lastLoopTime = Date.now();
         canvas: HTMLCanvasElement;
         context: CanvasRenderingContext2D;
         renderer: LanderRenderer;
@@ -94,16 +110,6 @@
         evoNetworks: nnpoc.Network[];
         bestLanders: Lander[];
         bestNetworks: nnpoc.Network[];
-        view = {
-            x: 0,
-            y: 0,
-            scale: 1,
-            left: 0,
-            right: 0,
-            top: 0,
-            bottom: 0
-        };
-
         stats = {
             generations: 0,
             landed: 0,
@@ -119,9 +125,6 @@
                 data: {}
             }[]
         };
-
-        bestCounter = 0;
-        lastLoopTime = Date.now();
 
         constructor() {
             this.canvas = document.createElement('canvas');
@@ -204,26 +207,26 @@
         }
 
         loop = (): void => {
-            //var start = Date.now();
-            //var elapsed = start - this.lastLoopTime;
+            var start = Date.now();
+            var elapsed = start - this.lastLoopTime;
 
             requestAnimationFrame(this.loop);
-
-            for (let j = 0; j < this.simSteps; j++) {
+            
+            while (Date.now() - start < 9) {
                 if (!this.update(this.evoLanders, this.evoNetworks, this.evo)) {
                     this.evolve();
                     this.resetLanders(this.evoLanders, this.evoNetworks);
-                }
+                }                
             }
 
             for (let j = 0; j < this.bestSteps; j++) {
                 var stillActive = this.update(this.bestLanders, this.bestNetworks, undefined);
 
-                //if (stillActive && this.bestLanders.length > 0 && !this.bestLanders[0].active) {
-                //    this.bestCounter++;
-                //    if (this.bestCounter >= this.bestExtraTime)
-                //        stillActive = false;
-                //}
+                if (stillActive && this.bestLanders.length > 0 && !this.bestLanders[0].active) {
+                    this.bestCounter++;
+                    if (this.bestCounter >= this.bestExtraTime)
+                        stillActive = false;
+                }
 
                 if (!stillActive) {
                     this.getBest(this.evoNetworks, this.bestNetworks, this.bestDisplay);
@@ -232,20 +235,26 @@
                 }
             }
 
-            //var updateTime = Date.now() - start;
-            //start = Date.now();
+            var updateTime = Date.now() - start;
+            start = Date.now();
 
             this.render();
 
-            //var renderTime = Date.now() - start;
+            var renderTime = Date.now() - start;
 
-            //console.log({
-            //    elapsed: start - this.lastLoopTime,
-            //    updateTime: updateTime,
-            //    renderTime: renderTime
-            //});
+            if (this.logElapsed) {
+                console.log({
+                    elapsed: start - this.lastLoopTime,
+                    updateTime: updateTime,
+                    renderTime: renderTime
+                });
+            }
 
-            //this.lastLoopTime = Date.now();
+            this.lastLoopTime = Date.now();
+
+            if (this.watch) {
+                console.log(this.watch());
+            }
         }
 
         update = (landers: Lander[], networks: nnpoc.Network[], evo: nnpoc.Neuroevolution): boolean => {

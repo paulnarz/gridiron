@@ -231,31 +231,31 @@ var nnlunar;
 })(nnlunar || (nnlunar = {}));
 var nnlunar;
 (function (nnlunar) {
-    function clamp(value, min, max) {
-        return (value < min) ? min : (value > max) ? max : value;
-    }
-    nnlunar.clamp = clamp;
+    var LunarGamePhaser = (function () {
+        function LunarGamePhaser() {
+            this.game = new Phaser.Game(800, 600, Phaser.AUTO, "content", {
+                preload: this.preload,
+                create: this.create
+            });
+        }
+        LunarGamePhaser.prototype.preload = function () {
+            console.log("preload");
+        };
+        LunarGamePhaser.prototype.create = function () {
+            console.log("create");
+        };
+        return LunarGamePhaser;
+    }());
+    nnlunar.LunarGamePhaser = LunarGamePhaser;
 })(nnlunar || (nnlunar = {}));
 var nnlunar;
 (function (nnlunar) {
     var LunarGameRaw = (function () {
         function LunarGameRaw() {
             var _this = this;
+            //world
             this.SCREEN_WIDTH = 800;
             this.SCREEN_HEIGHT = 800;
-            this.simSteps = 128;
-            this.simDisplay = 50;
-            this.simColor = "#7F7F7F";
-            this.bestSteps = 4;
-            this.bestDisplay = 5;
-            this.bestColor = "#FFFFFF";
-            this.bestExtraTime = 1200;
-            this.world = {
-                left: 0,
-                right: 800,
-                top: 0,
-                bottom: 800
-            };
             this.start = {
                 x: 200,
                 y: 200,
@@ -270,20 +270,6 @@ var nnlunar;
                 minVel: 0.15,
                 minAng: 5
             };
-            this.evoOptions = {
-                population: 100,
-                elitism: 0.3,
-                randomBehaviour: 0.1,
-                mutationRate: 0.2,
-                mutationRange: 0.5,
-                nbChild: 2,
-                network: {
-                    inputs: 6,
-                    hiddens: [8, 8, 8],
-                    outputs: 2,
-                    randomClamped: function () { return Math.random() * 8 - 4; }
-                }
-            };
             this.view = {
                 x: 0,
                 y: 0,
@@ -293,6 +279,35 @@ var nnlunar;
                 top: 0,
                 bottom: 0
             };
+            //display/debug
+            this.simSteps = 128;
+            this.simDisplay = 50;
+            this.simColor = "#7F7F7F";
+            this.bestSteps = 4;
+            this.bestDisplay = 5;
+            this.bestColor = "#FFFFFF";
+            this.bestExtraTime = 1200;
+            this.discreteThurst = true;
+            this.logElapsed = false;
+            this.watch = undefined;
+            //fitness
+            this.evoOptions = {
+                population: 100,
+                elitism: 0.3,
+                randomBehaviour: 0.1,
+                mutationRate: 0.2,
+                mutationRange: 0.5,
+                nbChild: 2,
+                network: {
+                    inputs: 6,
+                    hiddens: [22, 22],
+                    outputs: 2,
+                    randomClamped: function () { return Math.random() * 8 - 4; }
+                }
+            };
+            //state
+            this.bestCounter = 0;
+            this.lastLoopTime = Date.now();
             this.stats = {
                 generations: 0,
                 landed: 0,
@@ -303,13 +318,11 @@ var nnlunar;
                 worst: 0,
                 scores: []
             };
-            this.bestCounter = 0;
-            this.lastLoopTime = Date.now();
             this.loop = function () {
-                //var start = Date.now();
-                //var elapsed = start - this.lastLoopTime;
+                var start = Date.now();
+                var elapsed = start - _this.lastLoopTime;
                 requestAnimationFrame(_this.loop);
-                for (var j = 0; j < _this.simSteps; j++) {
+                while (Date.now() - start < 9) {
                     if (!_this.update(_this.evoLanders, _this.evoNetworks, _this.evo)) {
                         _this.evolve();
                         _this.resetLanders(_this.evoLanders, _this.evoNetworks);
@@ -317,27 +330,32 @@ var nnlunar;
                 }
                 for (var j = 0; j < _this.bestSteps; j++) {
                     var stillActive = _this.update(_this.bestLanders, _this.bestNetworks, undefined);
-                    //if (stillActive && this.bestLanders.length > 0 && !this.bestLanders[0].active) {
-                    //    this.bestCounter++;
-                    //    if (this.bestCounter >= this.bestExtraTime)
-                    //        stillActive = false;
-                    //}
+                    if (stillActive && _this.bestLanders.length > 0 && !_this.bestLanders[0].active) {
+                        _this.bestCounter++;
+                        if (_this.bestCounter >= _this.bestExtraTime)
+                            stillActive = false;
+                    }
                     if (!stillActive) {
                         _this.getBest(_this.evoNetworks, _this.bestNetworks, _this.bestDisplay);
                         _this.resetLanders(_this.bestLanders, _this.bestNetworks);
                         _this.bestCounter = 0;
                     }
                 }
-                //var updateTime = Date.now() - start;
-                //start = Date.now();
+                var updateTime = Date.now() - start;
+                start = Date.now();
                 _this.render();
-                //var renderTime = Date.now() - start;
-                //console.log({
-                //    elapsed: start - this.lastLoopTime,
-                //    updateTime: updateTime,
-                //    renderTime: renderTime
-                //});
-                //this.lastLoopTime = Date.now();
+                var renderTime = Date.now() - start;
+                if (_this.logElapsed) {
+                    console.log({
+                        elapsed: start - _this.lastLoopTime,
+                        updateTime: updateTime,
+                        renderTime: renderTime
+                    });
+                }
+                _this.lastLoopTime = Date.now();
+                if (_this.watch) {
+                    console.log(_this.watch());
+                }
             };
             this.update = function (landers, networks, evo) {
                 var activeLanders = false;
@@ -396,6 +414,16 @@ var nnlunar;
             this.resetLanders(this.bestLanders, this.bestNetworks);
             this.loop();
         }
+        LunarGameRaw.prototype.statFunc = function (l) {
+            return {
+                x: l.pos.x,
+                y: l.pos.y,
+                r: l.rotation,
+                f: l.fuel,
+                vx: l.vel.x,
+                vy: l.vel.y,
+            };
+        };
         LunarGameRaw.prototype.calcFunc = function (l, n) {
             var result = n.calculate([
                 nnpoc.lerpInv(l.pos.x, 0, 800),
@@ -405,7 +433,13 @@ var nnlunar;
                 nnpoc.lerpInv(l.vel.y, -0.35, 0.35),
                 nnpoc.lerpInv(l.fuel, 0, this.start.fuel)
             ]);
-            l.thrust(result[0]);
+            if (this.discreteThurst) {
+                if (result[0] > 0.5)
+                    l.thrust(1);
+            }
+            else {
+                l.thrust(result[0]);
+            }
             l.setRotation(nnpoc.lerp(result[1], -90, 90));
         };
         LunarGameRaw.prototype.scoreFunc = function (l) {
@@ -419,16 +453,6 @@ var nnlunar;
             score += dvy * dvy;
             score += dr * dr;
             return score;
-        };
-        LunarGameRaw.prototype.statFunc = function (l) {
-            return {
-                x: l.pos.x,
-                y: l.pos.y,
-                r: l.rotation,
-                f: l.fuel,
-                vx: l.vel.x,
-                vy: l.vel.y,
-            };
         };
         LunarGameRaw.prototype.evolve = function () {
             var _this = this;
@@ -518,22 +542,10 @@ var nnlunar;
 })(nnlunar || (nnlunar = {}));
 var nnlunar;
 (function (nnlunar) {
-    var LunarGamePhaser = (function () {
-        function LunarGamePhaser() {
-            this.game = new Phaser.Game(800, 600, Phaser.AUTO, "content", {
-                preload: this.preload,
-                create: this.create
-            });
-        }
-        LunarGamePhaser.prototype.preload = function () {
-            console.log("preload");
-        };
-        LunarGamePhaser.prototype.create = function () {
-            console.log("create");
-        };
-        return LunarGamePhaser;
-    }());
-    nnlunar.LunarGamePhaser = LunarGamePhaser;
+    function clamp(value, min, max) {
+        return (value < min) ? min : (value > max) ? max : value;
+    }
+    nnlunar.clamp = clamp;
 })(nnlunar || (nnlunar = {}));
 var nnlunar;
 (function (nnlunar) {
@@ -716,6 +728,15 @@ var nnpoc;
         return Color;
     }());
     nnpoc.Color = Color;
+})(nnpoc || (nnpoc = {}));
+var nnpoc;
+(function (nnpoc) {
+    var Edge = (function () {
+        function Edge() {
+        }
+        return Edge;
+    }());
+    nnpoc.Edge = Edge;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
 (function (nnpoc) {
@@ -939,19 +960,6 @@ var nnpoc;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
 (function (nnpoc) {
-    /** converts a value between min and max to value between 0 and 1 */
-    function lerpInv(value, min, max) {
-        return ((value || 0) - min) / (max - min);
-    }
-    nnpoc.lerpInv = lerpInv;
-    /** converts a value between 0 and 1 to a value between min and max */
-    function lerp(value, min, max) {
-        return (value || 0) * (max - min) + min;
-    }
-    nnpoc.lerp = lerp;
-})(nnpoc || (nnpoc = {}));
-var nnpoc;
-(function (nnpoc) {
     var Network = (function () {
         function Network() {
         }
@@ -1054,15 +1062,6 @@ var nnpoc;
         return Network;
     }());
     nnpoc.Network = Network;
-})(nnpoc || (nnpoc = {}));
-var nnpoc;
-(function (nnpoc) {
-    var Edge = (function () {
-        function Edge() {
-        }
-        return Edge;
-    }());
-    nnpoc.Edge = Edge;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
 (function (nnpoc) {
@@ -1176,6 +1175,19 @@ var nnpoc;
         return Neuron;
     }());
     nnpoc.Neuron = Neuron;
+})(nnpoc || (nnpoc = {}));
+var nnpoc;
+(function (nnpoc) {
+    /** converts a value between min and max to value between 0 and 1 */
+    function lerpInv(value, min, max) {
+        return ((value || 0) - min) / (max - min);
+    }
+    nnpoc.lerpInv = lerpInv;
+    /** converts a value between 0 and 1 to a value between min and max */
+    function lerp(value, min, max) {
+        return (value || 0) * (max - min) + min;
+    }
+    nnpoc.lerp = lerp;
 })(nnpoc || (nnpoc = {}));
 var nnpoc;
 (function (nnpoc) {
