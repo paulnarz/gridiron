@@ -87,15 +87,18 @@
 
         scoreFunc(l: Lander): number {
             var score = 0;
-            if (l.crashed)
-                score += 6;
-            var dx = (l.pos.x - this.target.x) / 800;
+            var dx = (l.pos.x - this.target.x) / this.SCREEN_WIDTH;
             var dvy = l.vel.y / 0.35;
             var dr = l.rotation / 90;
+            var df = (this.start.fuel - l.fuel) / this.start.fuel;
+            if (l.crashed)
+                score += 8;
 
             score += dx * dx;
             score += dvy * dvy;
             score += dr * dr;
+            score += df * df;
+
             return score;
         }
 
