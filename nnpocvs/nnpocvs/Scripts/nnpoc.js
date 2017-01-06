@@ -286,7 +286,7 @@ var nnlunar;
             this.bestSteps = 4;
             this.bestDisplay = 5;
             this.bestColor = "#FFFFFF";
-            this.bestExtraTime = 1200;
+            this.bestExtraTime = 320;
             this.discreteThurst = true;
             this.logElapsed = false;
             this.watch = undefined;
@@ -305,7 +305,7 @@ var nnlunar;
                     randomClamped: function () { return Math.random() * 8 - 4; }
                 }
             };
-            //state
+            //state        
             this.bestCounter = 0;
             this.lastLoopTime = Date.now();
             this.stats = {
@@ -330,7 +330,7 @@ var nnlunar;
                 }
                 for (var j = 0; j < _this.bestSteps; j++) {
                     var stillActive = _this.update(_this.bestLanders, _this.bestNetworks, undefined);
-                    if (stillActive && _this.bestLanders.length > 0 && !_this.bestLanders[0].active) {
+                    if (!stillActive) {
                         _this.bestCounter++;
                         if (_this.bestCounter >= _this.bestExtraTime)
                             stillActive = false;
@@ -449,7 +449,7 @@ var nnlunar;
             var dr = l.rotation / 90;
             var df = (this.start.fuel - l.fuel) / this.start.fuel;
             if (l.crashed)
-                score += 8;
+                score += 4;
             score += dx * dx;
             score += dvy * dvy;
             score += dr * dr;
@@ -541,6 +541,32 @@ var nnlunar;
         return LunarGameRaw;
     }());
     nnlunar.LunarGameRaw = LunarGameRaw;
+    var Tracker = (function () {
+        function Tracker() {
+        }
+        Tracker.track = function (key, value) {
+            var tracker = Tracker.values[key];
+            if (!tracker) {
+                Tracker.values[key] = tracker = {
+                    min: value,
+                    max: value
+                };
+                console.log(key, tracker);
+            }
+            else {
+                if (tracker.min > value) {
+                    tracker.min = value;
+                    console.log(key, tracker);
+                }
+                if (tracker.max < value) {
+                    tracker.max = value;
+                    console.log(key, tracker);
+                }
+            }
+        };
+        Tracker.values = {};
+        return Tracker;
+    }());
 })(nnlunar || (nnlunar = {}));
 var nnlunar;
 (function (nnlunar) {

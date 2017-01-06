@@ -33,8 +33,8 @@
         simColor = "#7F7F7F";
         bestSteps = 4;
         bestDisplay = 5;
-        bestColor = "#FFFFFF";
-        bestExtraTime = 1200;
+        bestColor = "#FFFFFF";        
+        bestExtraTime = 320;
         discreteThurst = true;
         logElapsed = false;
         watch: () => void = undefined;
@@ -87,22 +87,22 @@
 
         scoreFunc(l: Lander): number {
             var score = 0;
-            var dx = (l.pos.x - this.target.x) / this.SCREEN_WIDTH;
+            var dx = (l.pos.x - this.target.x) / this.SCREEN_WIDTH;            
             var dvy = l.vel.y / 0.35;
             var dr = l.rotation / 90;
-            var df = (this.start.fuel - l.fuel) / this.start.fuel;
+            var df = (this.start.fuel - l.fuel) / this.start.fuel;            
+
             if (l.crashed)
-                score += 8;
+                score += 4;
 
             score += dx * dx;
             score += dvy * dvy;
             score += dr * dr;
-            score += df * df;
-
+            score += df * df;            
             return score;
         }
 
-        //state
+        //state        
         bestCounter = 0;
         lastLoopTime = Date.now();
         canvas: HTMLCanvasElement;
@@ -225,7 +225,7 @@
             for (let j = 0; j < this.bestSteps; j++) {
                 var stillActive = this.update(this.bestLanders, this.bestNetworks, undefined);
 
-                if (stillActive && this.bestLanders.length > 0 && !this.bestLanders[0].active) {
+                if (!stillActive) {
                     this.bestCounter++;
                     if (this.bestCounter >= this.bestExtraTime)
                         stillActive = false;
@@ -270,7 +270,7 @@
                     this.calcFunc(l, networks[i]);
                 }
 
-                l.update();
+                l.update();                
 
                 if (l.active) {
                     //check collision
@@ -345,6 +345,37 @@
             }
 
             c.restore();
+        }
+    }
+
+    class Tracker {
+        static values: {
+            [key: string]: {
+                min: number,
+                max: number
+            }
+        } = {};
+
+        static track(key: string, value: number) {
+            var tracker = Tracker.values[key];
+
+            if (!tracker) {
+                Tracker.values[key] = tracker = {
+                    min: value,
+                    max: value
+                }
+                console.log(key, tracker);
+            }
+            else {
+                if (tracker.min > value) {
+                    tracker.min = value;
+                    console.log(key, tracker);
+                }
+                if (tracker.max < value) {
+                    tracker.max = value;
+                    console.log(key, tracker);
+                }
+            }
         }
     }
 }
