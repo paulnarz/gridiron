@@ -1,19 +1,23 @@
 ﻿module nnlunar {
     export class LunarGameRaw {
-        //world
-        SCREEN_WIDTH = 800;
-        SCREEN_HEIGHT = 800;
+        //world       
+        discreteThurst = false;
+        world = {
+            x: 0,
+            y: 0,
+            width: 800,
+            height: 800
+        }
         start = {
-            x: 200,
-            y: 200,
+            x: -200,
+            y: -100,
             rotation: 0,
             fuel: 500
         };
         target = {
-            x: 600,
-            y: 600,
-            left: 600 - 40,
-            right: 600 + 40,
+            x: 200,
+            y: 300,
+            width: 100,
             minVel: 0.15,
             minAng: 5
         };
@@ -34,8 +38,7 @@
         bestSteps = 4;
         bestDisplay = 5;
         bestColor = "#FFFFFF";        
-        bestExtraTime = 320;
-        discreteThurst = true;
+        bestExtraTime = 320;        
         logElapsed = false;
         watch: () => void = undefined;
         statFunc(l: Lander): any {
@@ -67,8 +70,8 @@
 
         calcFunc(l: Lander, n: nnpoc.Network): void {
             var result = n.calculate([
-                nnpoc.lerpInv(l.pos.x, 0, 800),
-                nnpoc.lerpInv(l.pos.y, 0, 800),
+                nnpoc.lerpInv(l.pos.x, 0, this.world.width),
+                nnpoc.lerpInv(l.pos.y, 0, this.world.height),
                 nnpoc.lerpInv(l.rotation, -90, 90),
                 nnpoc.lerpInv(l.vel.x, -0.35, 0.35),
                 nnpoc.lerpInv(l.vel.y, -0.35, 0.35),
@@ -87,7 +90,7 @@
 
         scoreFunc(l: Lander): number {
             var score = 0;
-            var dx = (l.pos.x - this.target.x) / this.SCREEN_WIDTH;            
+            var dx = (l.pos.x - this.target.x) / this.world.width;            
             var dvy = l.vel.y / 0.35;
             var dr = l.rotation / 90;
             var df = (this.start.fuel - l.fuel) / this.start.fuel;            
@@ -103,6 +106,8 @@
         }
 
         //state        
+        SCREEN_WIDTH = window.innerWidth;
+        SCREEN_HEIGHT = window.innerHeight;
         bestCounter = 0;
         lastLoopTime = Date.now();
         canvas: HTMLCanvasElement;
@@ -136,9 +141,13 @@
             this.canvas.width = this.SCREEN_WIDTH;
             this.canvas.height = this.SCREEN_HEIGHT;
             this.canvas.style.backgroundColor = "#000000";
+            this.updateView();
+            window.addEventListener('resize', this.resizeGame);
+            window.addEventListener('orientationchange', this.resizeGame);
+
+
             this.renderer = new LanderRenderer();
             this.evo = new nnpoc.Neuroevolution(this.evoOptions);
-
             this.evoLanders = [];
             this.bestLanders = [];
             this.bestNetworks = [];
@@ -146,7 +155,7 @@
             this.resetLanders(this.evoLanders, this.evoNetworks);
             this.getBest(this.evoNetworks, this.bestNetworks, 0);
             this.resetLanders(this.bestLanders, this.bestNetworks);            
-            
+
             this.loop();
         }
         
@@ -262,6 +271,8 @@
 
         update = (landers: Lander[], networks: nnpoc.Network[], evo: nnpoc.Neuroevolution): boolean => {
             var activeLanders = false;
+            var tleft = this.target.x - this.target.width / 2;
+            var tright = this.target.x + this.target.width / 2;
 
             for (let i = 0, len = landers.length; i < len; i++) {
                 var l = landers[i];
@@ -275,7 +286,7 @@
                 if (l.active) {
                     //check collision
                     if (l.bottom >= this.target.y) {
-                        if ((l.left > this.target.left) && (l.right < this.target.right)) {
+                        if ((l.left > tleft) && (l.right < tright)) {
                             if ((Math.abs(l.rotation) <= this.target.minAng) && (l.vel.y <= this.target.minVel)) {
                                 l.land();
                             }
@@ -325,15 +336,15 @@
             //draw langscape
             c.strokeStyle = "#FFFFFF";
             c.beginPath();
-            c.moveTo(0, this.target.y)
-            c.lineTo(this.SCREEN_WIDTH, this.target.y);
+            c.moveTo(this.view.left, this.target.y)
+            c.lineTo(this.view.right, this.target.y);
             c.stroke();
 
             c.strokeStyle = "#00FF00";
             c.lineWidth = 5;
             c.beginPath();
-            c.moveTo(this.target.left, this.target.y)
-            c.lineTo(this.target.right, this.target.y);
+            c.moveTo(this.target.x - this.target.width / 2, this.target.y)
+            c.lineTo(this.target.x + this.target.width / 2, this.target.y);
             c.stroke();
 
             for (let i = 0, len = Math.min(this.evoLanders.length, this.simDisplay); i < len; i++) {
@@ -345,6 +356,26 @@
             }
 
             c.restore();
+        }
+
+        updateView(): void {
+            this.view.scale = this.SCREEN_HEIGHT / this.world.height;
+            this.view.x = -this.world.x * this.view.scale + this.SCREEN_WIDTH / 2;
+            this.view.y = -this.world.y * this.view.scale + this.SCREEN_HEIGHT / 2;
+            this.view.left = -this.view.x / this.view.scale;
+            this.view.top = -this.view.y / this.view.scale;
+            this.view.right = this.view.left + (this.SCREEN_WIDTH / this.view.scale);
+            this.view.bottom = this.view.top + (this.SCREEN_HEIGHT / this.view.scale);            
+        }
+
+        resizeGame = (): void => {
+            var newWidth = window.innerWidth;
+            var newHeight = window.innerHeight;
+            if ((this.SCREEN_WIDTH == newWidth) && (this.SCREEN_HEIGHT == newHeight))
+                return;
+            this.SCREEN_WIDTH = this.canvas.width = newWidth;
+            this.SCREEN_HEIGHT = this.canvas.height = newHeight;
+            this.updateView();
         }
     }
 

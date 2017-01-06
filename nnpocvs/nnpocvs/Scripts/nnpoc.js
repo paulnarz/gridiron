@@ -253,20 +253,24 @@ var nnlunar;
     var LunarGameRaw = (function () {
         function LunarGameRaw() {
             var _this = this;
-            //world
-            this.SCREEN_WIDTH = 800;
-            this.SCREEN_HEIGHT = 800;
+            //world       
+            this.discreteThurst = false;
+            this.world = {
+                x: 0,
+                y: 0,
+                width: 800,
+                height: 800
+            };
             this.start = {
-                x: 200,
-                y: 200,
+                x: -200,
+                y: -100,
                 rotation: 0,
                 fuel: 500
             };
             this.target = {
-                x: 600,
-                y: 600,
-                left: 600 - 40,
-                right: 600 + 40,
+                x: 200,
+                y: 300,
+                width: 100,
                 minVel: 0.15,
                 minAng: 5
             };
@@ -287,7 +291,6 @@ var nnlunar;
             this.bestDisplay = 5;
             this.bestColor = "#FFFFFF";
             this.bestExtraTime = 320;
-            this.discreteThurst = true;
             this.logElapsed = false;
             this.watch = undefined;
             //fitness
@@ -306,6 +309,8 @@ var nnlunar;
                 }
             };
             //state        
+            this.SCREEN_WIDTH = window.innerWidth;
+            this.SCREEN_HEIGHT = window.innerHeight;
             this.bestCounter = 0;
             this.lastLoopTime = Date.now();
             this.stats = {
@@ -359,6 +364,8 @@ var nnlunar;
             };
             this.update = function (landers, networks, evo) {
                 var activeLanders = false;
+                var tleft = _this.target.x - _this.target.width / 2;
+                var tright = _this.target.x + _this.target.width / 2;
                 for (var i = 0, len = landers.length; i < len; i++) {
                     var l = landers[i];
                     if (l.active) {
@@ -368,7 +375,7 @@ var nnlunar;
                     if (l.active) {
                         //check collision
                         if (l.bottom >= _this.target.y) {
-                            if ((l.left > _this.target.left) && (l.right < _this.target.right)) {
+                            if ((l.left > tleft) && (l.right < tright)) {
                                 if ((Math.abs(l.rotation) <= _this.target.minAng) && (l.vel.y <= _this.target.minVel)) {
                                     l.land();
                                 }
@@ -397,12 +404,24 @@ var nnlunar;
                 }
                 return activeLanders;
             };
+            this.resizeGame = function () {
+                var newWidth = window.innerWidth;
+                var newHeight = window.innerHeight;
+                if ((_this.SCREEN_WIDTH == newWidth) && (_this.SCREEN_HEIGHT == newHeight))
+                    return;
+                _this.SCREEN_WIDTH = _this.canvas.width = newWidth;
+                _this.SCREEN_HEIGHT = _this.canvas.height = newHeight;
+                _this.updateView();
+            };
             this.canvas = document.createElement('canvas');
             this.context = this.canvas.getContext('2d');
             document.body.appendChild(this.canvas);
             this.canvas.width = this.SCREEN_WIDTH;
             this.canvas.height = this.SCREEN_HEIGHT;
             this.canvas.style.backgroundColor = "#000000";
+            this.updateView();
+            window.addEventListener('resize', this.resizeGame);
+            window.addEventListener('orientationchange', this.resizeGame);
             this.renderer = new nnlunar.LanderRenderer();
             this.evo = new nnpoc.Neuroevolution(this.evoOptions);
             this.evoLanders = [];
@@ -426,8 +445,8 @@ var nnlunar;
         };
         LunarGameRaw.prototype.calcFunc = function (l, n) {
             var result = n.calculate([
-                nnpoc.lerpInv(l.pos.x, 0, 800),
-                nnpoc.lerpInv(l.pos.y, 0, 800),
+                nnpoc.lerpInv(l.pos.x, 0, this.world.width),
+                nnpoc.lerpInv(l.pos.y, 0, this.world.height),
                 nnpoc.lerpInv(l.rotation, -90, 90),
                 nnpoc.lerpInv(l.vel.x, -0.35, 0.35),
                 nnpoc.lerpInv(l.vel.y, -0.35, 0.35),
@@ -444,7 +463,7 @@ var nnlunar;
         };
         LunarGameRaw.prototype.scoreFunc = function (l) {
             var score = 0;
-            var dx = (l.pos.x - this.target.x) / this.SCREEN_WIDTH;
+            var dx = (l.pos.x - this.target.x) / this.world.width;
             var dvy = l.vel.y / 0.35;
             var dr = l.rotation / 90;
             var df = (this.start.fuel - l.fuel) / this.start.fuel;
@@ -521,14 +540,14 @@ var nnlunar;
             //draw langscape
             c.strokeStyle = "#FFFFFF";
             c.beginPath();
-            c.moveTo(0, this.target.y);
-            c.lineTo(this.SCREEN_WIDTH, this.target.y);
+            c.moveTo(this.view.left, this.target.y);
+            c.lineTo(this.view.right, this.target.y);
             c.stroke();
             c.strokeStyle = "#00FF00";
             c.lineWidth = 5;
             c.beginPath();
-            c.moveTo(this.target.left, this.target.y);
-            c.lineTo(this.target.right, this.target.y);
+            c.moveTo(this.target.x - this.target.width / 2, this.target.y);
+            c.lineTo(this.target.x + this.target.width / 2, this.target.y);
             c.stroke();
             for (var i = 0, len = Math.min(this.evoLanders.length, this.simDisplay); i < len; i++) {
                 this.renderer.render(this.evoLanders[i], c, view.scale, this.simColor);
@@ -537,6 +556,15 @@ var nnlunar;
                 this.renderer.render(this.bestLanders[i], c, view.scale, this.bestColor);
             }
             c.restore();
+        };
+        LunarGameRaw.prototype.updateView = function () {
+            this.view.scale = this.SCREEN_HEIGHT / this.world.height;
+            this.view.x = -this.world.x * this.view.scale + this.SCREEN_WIDTH / 2;
+            this.view.y = -this.world.y * this.view.scale + this.SCREEN_HEIGHT / 2;
+            this.view.left = -this.view.x / this.view.scale;
+            this.view.top = -this.view.y / this.view.scale;
+            this.view.right = this.view.left + (this.SCREEN_WIDTH / this.view.scale);
+            this.view.bottom = this.view.top + (this.SCREEN_HEIGHT / this.view.scale);
         };
         return LunarGameRaw;
     }());
