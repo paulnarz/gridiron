@@ -31,15 +31,17 @@
             bottom: 0
         };
 
-        //display/debug
-        simSteps = 128;
+        //display/debug        
+        updateDelay = 10;
+        simSteps = 256;
         simDisplay = 50;
         simColor = "#7F7F7F";
         bestSteps = 4;
         bestDisplay = 5;
         bestColor = "#FFFFFF";        
         bestExtraTime = 320;        
-        logElapsed = false;
+        logUpdateTime = false;
+        logRenderTime = false;
         watch: () => void = undefined;
         statFunc(l: Lander): any {
             return {
@@ -110,6 +112,7 @@
         SCREEN_HEIGHT = window.innerHeight;
         bestCounter = 0;
         lastLoopTime = Date.now();
+        lastRenderTime = Date.now();
         canvas: HTMLCanvasElement;
         context: CanvasRenderingContext2D;
         renderer: LanderRenderer;
@@ -156,7 +159,8 @@
             this.getBest(this.evoNetworks, this.bestNetworks, 0);
             this.resetLanders(this.bestLanders, this.bestNetworks);            
 
-            this.loop();
+            this.update();
+            this.render();
         }
         
         evolve(): void {
@@ -218,21 +222,24 @@
                 dest.splice(soure.length, dest.length - soure.length);
         }
 
-        loop = (): void => {
+        update = (): void => {
             var start = Date.now();
             var elapsed = start - this.lastLoopTime;
 
-            requestAnimationFrame(this.loop);
-            
-            while (Date.now() - start < 9) {
-                if (!this.update(this.evoLanders, this.evoNetworks, this.evo)) {
+            setTimeout(this.update, this.updateDelay);
+
+            for (let j = 0, l = this.simSteps * elapsed; j < l; j++) {
+                if (!this.updateLanders(this.evoLanders, this.evoNetworks, this.evo)) {
                     this.evolve();
                     this.resetLanders(this.evoLanders, this.evoNetworks);
                 }                
+
+                if (Date.now() - start > this.updateDelay)
+                    break;
             }
 
-            for (let j = 0; j < this.bestSteps; j++) {
-                var stillActive = this.update(this.bestLanders, this.bestNetworks, undefined);
+            for (let j = 0, l = this.bestSteps * elapsed; j < l; j++) {
+                var stillActive = this.updateLanders(this.bestLanders, this.bestNetworks, undefined);
 
                 if (!stillActive) {
                     this.bestCounter++;
@@ -245,20 +252,17 @@
                     this.resetLanders(this.bestLanders, this.bestNetworks);
                     this.bestCounter = 0;
                 }
+
+                if (Date.now() - start > this.updateDelay)
+                    break;
             }
+           
+            if (this.logUpdateTime) {
+                var updateTime = Date.now() - start;
 
-            var updateTime = Date.now() - start;
-            start = Date.now();
-
-            this.render();
-
-            var renderTime = Date.now() - start;
-
-            if (this.logElapsed) {
                 console.log({
                     elapsed: start - this.lastLoopTime,
-                    updateTime: updateTime,
-                    renderTime: renderTime
+                    updateTime: updateTime                    
                 });
             }
 
@@ -269,7 +273,7 @@
             }
         }
 
-        update = (landers: Lander[], networks: nnpoc.Network[], evo: nnpoc.Neuroevolution): boolean => {
+        updateLanders = (landers: Lander[], networks: nnpoc.Network[], evo: nnpoc.Neuroevolution): boolean => {
             var activeLanders = false;
             var tleft = this.target.x - this.target.width / 2;
             var tright = this.target.x + this.target.width / 2;
@@ -319,7 +323,12 @@
             return activeLanders;
         }
 
-        render(): void {
+        render = (): void => {
+            var start = Date.now();
+            var elapsed = start - this.lastRenderTime;
+
+            requestAnimationFrame(this.render);
+
             var c = this.context;
             var view = this.view;
             c.clearRect(0, 0, this.SCREEN_WIDTH, this.SCREEN_HEIGHT);
@@ -356,6 +365,16 @@
             }
 
             c.restore();
+            
+            if (this.logRenderTime) {
+                var renderTime = Date.now() - start;
+
+                console.log({
+                    elapsed: start - this.lastRenderTime,
+                    renderTime: renderTime                    
+                });
+            }
+            this.lastRenderTime = Date.now();
         }
 
         updateView(): void {

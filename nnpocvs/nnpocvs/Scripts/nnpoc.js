@@ -283,15 +283,17 @@ var nnlunar;
                 top: 0,
                 bottom: 0
             };
-            //display/debug
-            this.simSteps = 128;
+            //display/debug        
+            this.updateDelay = 10;
+            this.simSteps = 256;
             this.simDisplay = 50;
             this.simColor = "#7F7F7F";
             this.bestSteps = 4;
             this.bestDisplay = 5;
             this.bestColor = "#FFFFFF";
             this.bestExtraTime = 320;
-            this.logElapsed = false;
+            this.logUpdateTime = false;
+            this.logRenderTime = false;
             this.watch = undefined;
             //fitness
             this.evoOptions = {
@@ -313,6 +315,7 @@ var nnlunar;
             this.SCREEN_HEIGHT = window.innerHeight;
             this.bestCounter = 0;
             this.lastLoopTime = Date.now();
+            this.lastRenderTime = Date.now();
             this.stats = {
                 generations: 0,
                 landed: 0,
@@ -323,18 +326,20 @@ var nnlunar;
                 worst: 0,
                 scores: []
             };
-            this.loop = function () {
+            this.update = function () {
                 var start = Date.now();
                 var elapsed = start - _this.lastLoopTime;
-                requestAnimationFrame(_this.loop);
-                while (Date.now() - start < 9) {
-                    if (!_this.update(_this.evoLanders, _this.evoNetworks, _this.evo)) {
+                setTimeout(_this.update, _this.updateDelay);
+                for (var j = 0, l = _this.simSteps * elapsed; j < l; j++) {
+                    if (!_this.updateLanders(_this.evoLanders, _this.evoNetworks, _this.evo)) {
                         _this.evolve();
                         _this.resetLanders(_this.evoLanders, _this.evoNetworks);
                     }
+                    if (Date.now() - start > _this.updateDelay)
+                        break;
                 }
-                for (var j = 0; j < _this.bestSteps; j++) {
-                    var stillActive = _this.update(_this.bestLanders, _this.bestNetworks, undefined);
+                for (var j = 0, l = _this.bestSteps * elapsed; j < l; j++) {
+                    var stillActive = _this.updateLanders(_this.bestLanders, _this.bestNetworks, undefined);
                     if (!stillActive) {
                         _this.bestCounter++;
                         if (_this.bestCounter >= _this.bestExtraTime)
@@ -345,16 +350,14 @@ var nnlunar;
                         _this.resetLanders(_this.bestLanders, _this.bestNetworks);
                         _this.bestCounter = 0;
                     }
+                    if (Date.now() - start > _this.updateDelay)
+                        break;
                 }
-                var updateTime = Date.now() - start;
-                start = Date.now();
-                _this.render();
-                var renderTime = Date.now() - start;
-                if (_this.logElapsed) {
+                if (_this.logUpdateTime) {
+                    var updateTime = Date.now() - start;
                     console.log({
                         elapsed: start - _this.lastLoopTime,
-                        updateTime: updateTime,
-                        renderTime: renderTime
+                        updateTime: updateTime
                     });
                 }
                 _this.lastLoopTime = Date.now();
@@ -362,7 +365,7 @@ var nnlunar;
                     console.log(_this.watch());
                 }
             };
-            this.update = function (landers, networks, evo) {
+            this.updateLanders = function (landers, networks, evo) {
                 var activeLanders = false;
                 var tleft = _this.target.x - _this.target.width / 2;
                 var tright = _this.target.x + _this.target.width / 2;
@@ -404,6 +407,49 @@ var nnlunar;
                 }
                 return activeLanders;
             };
+            this.render = function () {
+                var start = Date.now();
+                var elapsed = start - _this.lastRenderTime;
+                requestAnimationFrame(_this.render);
+                var c = _this.context;
+                var view = _this.view;
+                c.clearRect(0, 0, _this.SCREEN_WIDTH, _this.SCREEN_HEIGHT);
+                c.save();
+                c.translate(view.x, view.y);
+                c.scale(view.scale, view.scale);
+                //draw start
+                c.strokeStyle = "#FF0000";
+                c.beginPath();
+                c.arc(_this.start.x, _this.start.y, 1, 0, 90);
+                c.stroke();
+                //draw langscape
+                c.strokeStyle = "#FFFFFF";
+                c.beginPath();
+                c.moveTo(_this.view.left, _this.target.y);
+                c.lineTo(_this.view.right, _this.target.y);
+                c.stroke();
+                c.strokeStyle = "#00FF00";
+                c.lineWidth = 5;
+                c.beginPath();
+                c.moveTo(_this.target.x - _this.target.width / 2, _this.target.y);
+                c.lineTo(_this.target.x + _this.target.width / 2, _this.target.y);
+                c.stroke();
+                for (var i = 0, len = Math.min(_this.evoLanders.length, _this.simDisplay); i < len; i++) {
+                    _this.renderer.render(_this.evoLanders[i], c, view.scale, _this.simColor);
+                }
+                for (var i = 0, len = Math.min(_this.bestLanders.length, _this.bestDisplay); i < len; i++) {
+                    _this.renderer.render(_this.bestLanders[i], c, view.scale, _this.bestColor);
+                }
+                c.restore();
+                if (_this.logRenderTime) {
+                    var renderTime = Date.now() - start;
+                    console.log({
+                        elapsed: start - _this.lastRenderTime,
+                        renderTime: renderTime
+                    });
+                }
+                _this.lastRenderTime = Date.now();
+            };
             this.resizeGame = function () {
                 var newWidth = window.innerWidth;
                 var newHeight = window.innerHeight;
@@ -431,7 +477,8 @@ var nnlunar;
             this.resetLanders(this.evoLanders, this.evoNetworks);
             this.getBest(this.evoNetworks, this.bestNetworks, 0);
             this.resetLanders(this.bestLanders, this.bestNetworks);
-            this.loop();
+            this.update();
+            this.render();
         }
         LunarGameRaw.prototype.statFunc = function (l) {
             return {
@@ -524,38 +571,6 @@ var nnlunar;
             }
             if (dest.length > soure.length)
                 dest.splice(soure.length, dest.length - soure.length);
-        };
-        LunarGameRaw.prototype.render = function () {
-            var c = this.context;
-            var view = this.view;
-            c.clearRect(0, 0, this.SCREEN_WIDTH, this.SCREEN_HEIGHT);
-            c.save();
-            c.translate(view.x, view.y);
-            c.scale(view.scale, view.scale);
-            //draw start
-            c.strokeStyle = "#FF0000";
-            c.beginPath();
-            c.arc(this.start.x, this.start.y, 1, 0, 90);
-            c.stroke();
-            //draw langscape
-            c.strokeStyle = "#FFFFFF";
-            c.beginPath();
-            c.moveTo(this.view.left, this.target.y);
-            c.lineTo(this.view.right, this.target.y);
-            c.stroke();
-            c.strokeStyle = "#00FF00";
-            c.lineWidth = 5;
-            c.beginPath();
-            c.moveTo(this.target.x - this.target.width / 2, this.target.y);
-            c.lineTo(this.target.x + this.target.width / 2, this.target.y);
-            c.stroke();
-            for (var i = 0, len = Math.min(this.evoLanders.length, this.simDisplay); i < len; i++) {
-                this.renderer.render(this.evoLanders[i], c, view.scale, this.simColor);
-            }
-            for (var i = 0, len = Math.min(this.bestLanders.length, this.bestDisplay); i < len; i++) {
-                this.renderer.render(this.bestLanders[i], c, view.scale, this.bestColor);
-            }
-            c.restore();
         };
         LunarGameRaw.prototype.updateView = function () {
             this.view.scale = this.SCREEN_HEIGHT / this.world.height;
