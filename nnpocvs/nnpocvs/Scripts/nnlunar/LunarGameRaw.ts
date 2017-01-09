@@ -30,16 +30,16 @@
             top: 0,
             bottom: 0
         };
-
+        
         //display/debug        
         updateDelay = 10;
         simSteps = 256;
         simDisplay = 50;
         simColor = "#7F7F7F";
-        bestSteps = 4;
+        bestSteps = .1;
         bestDisplay = 5;
         bestColor = "#FFFFFF";        
-        bestExtraTime = 320;        
+        bestExtraTime = 3000;
         logUpdateTime = false;
         logRenderTime = false;
         watch: () => void = undefined;
@@ -110,8 +110,8 @@
         //state        
         SCREEN_WIDTH = window.innerWidth;
         SCREEN_HEIGHT = window.innerHeight;
-        bestCounter = 0;
-        lastLoopTime = Date.now();
+        bestTime = 0;
+        lastUpdateTime = Date.now();
         lastRenderTime = Date.now();
         canvas: HTMLCanvasElement;
         context: CanvasRenderingContext2D;
@@ -224,49 +224,51 @@
 
         update = (): void => {
             var start = Date.now();
-            var elapsed = start - this.lastLoopTime;
+            var elapsed = start - this.lastUpdateTime;
+            this.lastUpdateTime = start;
 
             setTimeout(this.update, this.updateDelay);
 
-            for (let j = 0, l = this.simSteps * elapsed; j < l; j++) {
+            var sims = 0;
+            while (Date.now() - start < this.updateDelay) {
                 if (!this.updateLanders(this.evoLanders, this.evoNetworks, this.evo)) {
                     this.evolve();
                     this.resetLanders(this.evoLanders, this.evoNetworks);
-                }                
-
-                if (Date.now() - start > this.updateDelay)
-                    break;
+                }
+                sims++;
             }
 
+            var bests = 0;
             for (let j = 0, l = this.bestSteps * elapsed; j < l; j++) {
                 var stillActive = this.updateLanders(this.bestLanders, this.bestNetworks, undefined);
 
-                if (!stillActive) {
-                    this.bestCounter++;
-                    if (this.bestCounter >= this.bestExtraTime)
-                        stillActive = false;
+                if (!stillActive && !this.bestTime) {
+                    this.bestTime = Date.now();
                 }
 
-                if (!stillActive) {
+                if (!stillActive && Date.now() - this.bestTime > this.bestExtraTime) {
                     this.getBest(this.evoNetworks, this.bestNetworks, this.bestDisplay);
                     this.resetLanders(this.bestLanders, this.bestNetworks);
-                    this.bestCounter = 0;
+                    this.bestTime = 0;
                 }
 
+                bests++;
                 if (Date.now() - start > this.updateDelay)
-                    break;
+                    break;                
             }
+            
            
             if (this.logUpdateTime) {
                 var updateTime = Date.now() - start;
 
                 console.log({
-                    elapsed: start - this.lastLoopTime,
-                    updateTime: updateTime                    
+                    start: start,
+                    elapsed: elapsed,
+                    updateTime: updateTime,
+                    sims: sims,
+                    bests: bests
                 });
-            }
-
-            this.lastLoopTime = Date.now();
+            }            
 
             if (this.watch) {
                 console.log(this.watch());
@@ -370,6 +372,7 @@
                 var renderTime = Date.now() - start;
 
                 console.log({
+                    noww: Date.now(),
                     elapsed: start - this.lastRenderTime,
                     renderTime: renderTime                    
                 });
