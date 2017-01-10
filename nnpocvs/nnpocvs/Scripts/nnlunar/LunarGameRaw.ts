@@ -36,7 +36,7 @@
         simSteps = 256;
         simDisplay = 25;
         simColor = "#7F7F7F";
-        updateTimeStep = 15;
+        updateTimeStep = 5;
         bestDisplay = 5;
         bestColor = "#FFFFFF";        
         bestExtraTime = 3000;
@@ -260,14 +260,16 @@
 
             var stillActive = this.updateLanders(this.bestLanders, this.bestNetworks, undefined);
 
-            if (!stillActive && !this.bestTime) {
-                this.bestTime = Date.now();
-            }
+            if (!stillActive) {
+                if (!this.bestTime) {
+                    this.bestTime = Date.now();
+                }
 
-            if (!stillActive && Date.now() - this.bestTime > this.bestExtraTime) {
-                this.getBest(this.evoNetworks, this.bestNetworks, this.bestDisplay);
-                this.resetLanders(this.bestLanders, this.bestNetworks);
-                this.bestTime = 0;
+                if (this.bestLanders.length == 0 || this.bestLanders[0].crashed || Date.now() - this.bestTime > this.bestExtraTime) {
+                    this.getBest(this.evoNetworks, this.bestNetworks, this.bestDisplay);
+                    this.resetLanders(this.bestLanders, this.bestNetworks);
+                    this.bestTime = 0;
+                } 
             }
         }
 
