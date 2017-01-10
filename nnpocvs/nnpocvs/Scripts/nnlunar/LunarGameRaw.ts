@@ -32,16 +32,16 @@
         };
         
         //display/debug        
-        updateDelay = 10;
+        simDelay = 10;
         simSteps = 256;
-        simDisplay = 50;
+        simDisplay = 25;
         simColor = "#7F7F7F";
-        bestSteps = .1;
+        updateTimeStep = 15;
         bestDisplay = 5;
         bestColor = "#FFFFFF";        
         bestExtraTime = 3000;
-        logUpdateTime = false;
-        logRenderTime = false;
+        logSimTime = false;
+        logRenderTime = true;
         watch: () => void = undefined;
         statFunc(l: Lander): any {
             return {
@@ -111,8 +111,9 @@
         SCREEN_WIDTH = window.innerWidth;
         SCREEN_HEIGHT = window.innerHeight;
         bestTime = 0;
-        lastUpdateTime = Date.now();
+        lastSimTime = Date.now();        
         lastRenderTime = Date.now();
+        updateTime = 0;
         canvas: HTMLCanvasElement;
         context: CanvasRenderingContext2D;
         renderer: LanderRenderer;
@@ -156,10 +157,10 @@
             this.bestNetworks = [];
             this.evolve();
             this.resetLanders(this.evoLanders, this.evoNetworks);
-            this.getBest(this.evoNetworks, this.bestNetworks, 0);
+            this.getBest(this.evoNetworks, this.bestNetworks, this.bestDisplay);
             this.resetLanders(this.bestLanders, this.bestNetworks);            
 
-            this.update();
+            this.simulate();
             this.render();
         }
         
@@ -222,56 +223,49 @@
                 dest.splice(soure.length, dest.length - soure.length);
         }
 
-        update = (): void => {
+        simulate = (): void => {
             var start = Date.now();
-            var elapsed = start - this.lastUpdateTime;
-            this.lastUpdateTime = start;
+            var elapsed = start - this.lastSimTime;
+            this.lastSimTime = start;
 
-            setTimeout(this.update, this.updateDelay);
+            setTimeout(this.simulate, this.simDelay);
 
             var sims = 0;
-            while (Date.now() - start < this.updateDelay) {
+            while (Date.now() - start < this.simDelay) {
                 if (!this.updateLanders(this.evoLanders, this.evoNetworks, this.evo)) {
                     this.evolve();
                     this.resetLanders(this.evoLanders, this.evoNetworks);
                 }
                 sims++;
-            }
-
-            var bests = 0;
-            for (let j = 0, l = this.bestSteps * elapsed; j < l; j++) {
-                var stillActive = this.updateLanders(this.bestLanders, this.bestNetworks, undefined);
-
-                if (!stillActive && !this.bestTime) {
-                    this.bestTime = Date.now();
-                }
-
-                if (!stillActive && Date.now() - this.bestTime > this.bestExtraTime) {
-                    this.getBest(this.evoNetworks, this.bestNetworks, this.bestDisplay);
-                    this.resetLanders(this.bestLanders, this.bestNetworks);
-                    this.bestTime = 0;
-                }
-
-                bests++;
-                if (Date.now() - start > this.updateDelay)
-                    break;                
-            }
-            
+            }            
            
-            if (this.logUpdateTime) {
-                var updateTime = Date.now() - start;
+            if (this.logSimTime) {
+                var simTime = Date.now() - start;
 
                 console.log({
                     start: start,
                     elapsed: elapsed,
-                    updateTime: updateTime,
-                    sims: sims,
-                    bests: bests
+                    simTime: simTime,
+                    sims: sims
                 });
-            }            
+            }
 
             if (this.watch) {
                 console.log(this.watch());
+            }
+        }
+
+        update(): void {
+            var stillActive = this.updateLanders(this.bestLanders, this.bestNetworks, undefined);
+
+            if (!stillActive && !this.bestTime) {
+                this.bestTime = Date.now();
+            }
+
+            if (!stillActive && Date.now() - this.bestTime > this.bestExtraTime) {
+                this.getBest(this.evoNetworks, this.bestNetworks, this.bestDisplay);
+                this.resetLanders(this.bestLanders, this.bestNetworks);
+                this.bestTime = 0;
             }
         }
 
@@ -329,6 +323,14 @@
             var start = Date.now();
             var elapsed = start - this.lastRenderTime;
 
+            this.updateTime += elapsed;
+            var updates = 0;
+            while (this.updateTime > this.updateTimeStep) {
+                updates++;
+                this.update();
+                this.updateTime -= this.updateTimeStep;                
+            }
+
             requestAnimationFrame(this.render);
 
             var c = this.context;
@@ -374,7 +376,8 @@
                 console.log({
                     noww: Date.now(),
                     elapsed: start - this.lastRenderTime,
-                    renderTime: renderTime                    
+                    renderTime: renderTime,
+                    updates: updates    
                 });
             }
             this.lastRenderTime = Date.now();

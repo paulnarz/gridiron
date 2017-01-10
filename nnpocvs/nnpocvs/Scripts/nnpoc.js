@@ -284,16 +284,16 @@ var nnlunar;
                 bottom: 0
             };
             //display/debug        
-            this.updateDelay = 10;
+            this.simDelay = 10;
             this.simSteps = 256;
-            this.simDisplay = 50;
+            this.simDisplay = 25;
             this.simColor = "#7F7F7F";
-            this.bestSteps = .1;
+            this.updateTimeStep = 15;
             this.bestDisplay = 5;
             this.bestColor = "#FFFFFF";
             this.bestExtraTime = 3000;
-            this.logUpdateTime = false;
-            this.logRenderTime = false;
+            this.logSimTime = false;
+            this.logRenderTime = true;
             this.watch = undefined;
             //fitness
             this.evoOptions = {
@@ -314,8 +314,9 @@ var nnlunar;
             this.SCREEN_WIDTH = window.innerWidth;
             this.SCREEN_HEIGHT = window.innerHeight;
             this.bestTime = 0;
-            this.lastUpdateTime = Date.now();
+            this.lastSimTime = Date.now();
             this.lastRenderTime = Date.now();
+            this.updateTime = 0;
             this.stats = {
                 generations: 0,
                 landed: 0,
@@ -326,42 +327,26 @@ var nnlunar;
                 worst: 0,
                 scores: []
             };
-            this.update = function () {
+            this.simulate = function () {
                 var start = Date.now();
-                var elapsed = start - _this.lastUpdateTime;
-                _this.lastUpdateTime = start;
-                setTimeout(_this.update, _this.updateDelay);
+                var elapsed = start - _this.lastSimTime;
+                _this.lastSimTime = start;
+                setTimeout(_this.simulate, _this.simDelay);
                 var sims = 0;
-                while (Date.now() - start < _this.updateDelay) {
+                while (Date.now() - start < _this.simDelay) {
                     if (!_this.updateLanders(_this.evoLanders, _this.evoNetworks, _this.evo)) {
                         _this.evolve();
                         _this.resetLanders(_this.evoLanders, _this.evoNetworks);
                     }
                     sims++;
                 }
-                var bests = 0;
-                for (var j = 0, l = _this.bestSteps * elapsed; j < l; j++) {
-                    var stillActive = _this.updateLanders(_this.bestLanders, _this.bestNetworks, undefined);
-                    if (!stillActive && !_this.bestTime) {
-                        _this.bestTime = Date.now();
-                    }
-                    if (!stillActive && Date.now() - _this.bestTime > _this.bestExtraTime) {
-                        _this.getBest(_this.evoNetworks, _this.bestNetworks, _this.bestDisplay);
-                        _this.resetLanders(_this.bestLanders, _this.bestNetworks);
-                        _this.bestTime = 0;
-                    }
-                    bests++;
-                    if (Date.now() - start > _this.updateDelay)
-                        break;
-                }
-                if (_this.logUpdateTime) {
-                    var updateTime = Date.now() - start;
+                if (_this.logSimTime) {
+                    var simTime = Date.now() - start;
                     console.log({
                         start: start,
                         elapsed: elapsed,
-                        updateTime: updateTime,
-                        sims: sims,
-                        bests: bests
+                        simTime: simTime,
+                        sims: sims
                     });
                 }
                 if (_this.watch) {
@@ -413,6 +398,13 @@ var nnlunar;
             this.render = function () {
                 var start = Date.now();
                 var elapsed = start - _this.lastRenderTime;
+                _this.updateTime += elapsed;
+                var updates = 0;
+                while (_this.updateTime > _this.updateTimeStep) {
+                    updates++;
+                    _this.update();
+                    _this.updateTime -= _this.updateTimeStep;
+                }
                 requestAnimationFrame(_this.render);
                 var c = _this.context;
                 var view = _this.view;
@@ -449,7 +441,8 @@ var nnlunar;
                     console.log({
                         noww: Date.now(),
                         elapsed: start - _this.lastRenderTime,
-                        renderTime: renderTime
+                        renderTime: renderTime,
+                        updates: updates
                     });
                 }
                 _this.lastRenderTime = Date.now();
@@ -479,9 +472,9 @@ var nnlunar;
             this.bestNetworks = [];
             this.evolve();
             this.resetLanders(this.evoLanders, this.evoNetworks);
-            this.getBest(this.evoNetworks, this.bestNetworks, 0);
+            this.getBest(this.evoNetworks, this.bestNetworks, this.bestDisplay);
             this.resetLanders(this.bestLanders, this.bestNetworks);
-            this.update();
+            this.simulate();
             this.render();
         }
         LunarGameRaw.prototype.statFunc = function (l) {
@@ -575,6 +568,17 @@ var nnlunar;
             }
             if (dest.length > soure.length)
                 dest.splice(soure.length, dest.length - soure.length);
+        };
+        LunarGameRaw.prototype.update = function () {
+            var stillActive = this.updateLanders(this.bestLanders, this.bestNetworks, undefined);
+            if (!stillActive && !this.bestTime) {
+                this.bestTime = Date.now();
+            }
+            if (!stillActive && Date.now() - this.bestTime > this.bestExtraTime) {
+                this.getBest(this.evoNetworks, this.bestNetworks, this.bestDisplay);
+                this.resetLanders(this.bestLanders, this.bestNetworks);
+                this.bestTime = 0;
+            }
         };
         LunarGameRaw.prototype.updateView = function () {
             this.view.scale = this.SCREEN_HEIGHT / this.world.height;
