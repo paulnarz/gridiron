@@ -293,7 +293,7 @@ var nnlunar;
             this.bestColor = "#FFFFFF";
             this.bestExtraTime = 3000;
             this.logSimTime = false;
-            this.logRenderTime = true;
+            this.logRenderTime = false;
             this.watch = undefined;
             //fitness
             this.evoOptions = {
@@ -337,6 +337,8 @@ var nnlunar;
                     if (!_this.updateLanders(_this.evoLanders, _this.evoNetworks, _this.evo)) {
                         _this.evolve();
                         _this.resetLanders(_this.evoLanders, _this.evoNetworks);
+                        if (!_this.bestLanders)
+                            _this.bestLanders = [];
                     }
                     sims++;
                 }
@@ -432,8 +434,10 @@ var nnlunar;
                 for (var i = 0, len = Math.min(_this.evoLanders.length, _this.simDisplay); i < len; i++) {
                     _this.renderer.render(_this.evoLanders[i], c, view.scale, _this.simColor);
                 }
-                for (var i = 0, len = Math.min(_this.bestLanders.length, _this.bestDisplay); i < len; i++) {
-                    _this.renderer.render(_this.bestLanders[i], c, view.scale, _this.bestColor);
+                if (_this.bestLanders) {
+                    for (var i = 0, len = Math.min(_this.bestLanders.length, _this.bestDisplay); i < len; i++) {
+                        _this.renderer.render(_this.bestLanders[i], c, view.scale, _this.bestColor);
+                    }
                 }
                 c.restore();
                 if (_this.logRenderTime) {
@@ -468,12 +472,9 @@ var nnlunar;
             this.renderer = new nnlunar.LanderRenderer();
             this.evo = new nnpoc.Neuroevolution(this.evoOptions);
             this.evoLanders = [];
-            this.bestLanders = [];
             this.bestNetworks = [];
             this.evolve();
             this.resetLanders(this.evoLanders, this.evoNetworks);
-            this.getBest(this.evoNetworks, this.bestNetworks, this.bestDisplay);
-            this.resetLanders(this.bestLanders, this.bestNetworks);
             this.simulate();
             this.render();
         }
@@ -570,6 +571,8 @@ var nnlunar;
                 dest.splice(soure.length, dest.length - soure.length);
         };
         LunarGameRaw.prototype.update = function () {
+            if (!this.bestLanders)
+                return;
             var stillActive = this.updateLanders(this.bestLanders, this.bestNetworks, undefined);
             if (!stillActive && !this.bestTime) {
                 this.bestTime = Date.now();

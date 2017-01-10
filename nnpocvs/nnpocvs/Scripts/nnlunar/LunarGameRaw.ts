@@ -41,7 +41,7 @@
         bestColor = "#FFFFFF";        
         bestExtraTime = 3000;
         logSimTime = false;
-        logRenderTime = true;
+        logRenderTime = false;
         watch: () => void = undefined;
         statFunc(l: Lander): any {
             return {
@@ -152,13 +152,10 @@
 
             this.renderer = new LanderRenderer();
             this.evo = new nnpoc.Neuroevolution(this.evoOptions);
-            this.evoLanders = [];
-            this.bestLanders = [];
+            this.evoLanders = [];            
             this.bestNetworks = [];
             this.evolve();
-            this.resetLanders(this.evoLanders, this.evoNetworks);
-            this.getBest(this.evoNetworks, this.bestNetworks, this.bestDisplay);
-            this.resetLanders(this.bestLanders, this.bestNetworks);            
+            this.resetLanders(this.evoLanders, this.evoNetworks);            
 
             this.simulate();
             this.render();
@@ -235,6 +232,8 @@
                 if (!this.updateLanders(this.evoLanders, this.evoNetworks, this.evo)) {
                     this.evolve();
                     this.resetLanders(this.evoLanders, this.evoNetworks);
+                    if (!this.bestLanders)
+                        this.bestLanders = [];
                 }
                 sims++;
             }            
@@ -256,6 +255,9 @@
         }
 
         update(): void {
+            if (!this.bestLanders)
+                return;
+
             var stillActive = this.updateLanders(this.bestLanders, this.bestNetworks, undefined);
 
             if (!stillActive && !this.bestTime) {
@@ -364,9 +366,11 @@
                 this.renderer.render(this.evoLanders[i], c, view.scale, this.simColor);
             }
 
-            for (let i = 0, len = Math.min(this.bestLanders.length, this.bestDisplay); i < len; i++) {
-                this.renderer.render(this.bestLanders[i], c, view.scale, this.bestColor);
-            }
+            if (this.bestLanders) {
+                for (let i = 0, len = Math.min(this.bestLanders.length, this.bestDisplay); i < len; i++) {
+                    this.renderer.render(this.bestLanders[i], c, view.scale, this.bestColor);
+                }
+            }            
 
             c.restore();
             
