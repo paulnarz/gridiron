@@ -21,6 +21,12 @@
             minVel: 0.15,
             minAng: 5
         };
+        wall = {
+            top: 0,
+            bottom: 300,
+            left: -50,
+            right: 50
+        }
         view = {
             x: 0,
             y: 0,
@@ -302,6 +308,15 @@
                             l.crash();
                         }
                     }
+
+                    if (this.wall) {
+                        if (l.right > this.wall.left
+                            && l.left < this.wall.right
+                            && l.bottom > this.wall.top
+                            && l.top < this.wall.bottom) {
+                            l.crash()
+                        }
+                    }
                     
                     if (evo && !l.active) {
                         var score = this.scoreFunc(l);
@@ -345,12 +360,24 @@
             c.scale(view.scale, view.scale);
 
             //draw start
-            c.strokeStyle = "#FF0000";
+            c.strokeStyle = "#00FF00";
             c.beginPath();
             c.arc(this.start.x, this.start.y, 1, 0, 90);
             c.stroke();
 
             //draw langscape
+            if (this.wall) {
+                c.strokeStyle = "#FFFFFF";
+                c.lineWidth = 1;
+                c.beginPath();
+                c.moveTo(this.wall.left, this.wall.top);
+                c.lineTo(this.wall.right, this.wall.top);
+                c.lineTo(this.wall.right, this.wall.bottom);
+                c.lineTo(this.wall.left, this.wall.bottom);
+                c.closePath();
+                c.stroke();
+            }
+
             c.strokeStyle = "#FFFFFF";
             c.beginPath();
             c.moveTo(this.view.left, this.target.y)

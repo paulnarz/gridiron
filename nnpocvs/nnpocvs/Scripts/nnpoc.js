@@ -274,6 +274,12 @@ var nnlunar;
                 minVel: 0.15,
                 minAng: 5
             };
+            this.wall = {
+                top: 0,
+                bottom: 300,
+                left: -50,
+                right: 50
+            };
             this.view = {
                 x: 0,
                 y: 0,
@@ -380,6 +386,14 @@ var nnlunar;
                                 l.crash();
                             }
                         }
+                        if (_this.wall) {
+                            if (l.right > _this.wall.left
+                                && l.left < _this.wall.right
+                                && l.bottom > _this.wall.top
+                                && l.top < _this.wall.bottom) {
+                                l.crash();
+                            }
+                        }
                         if (evo && !l.active) {
                             var score = _this.scoreFunc(l);
                             _this.stats.scores.push({
@@ -415,11 +429,22 @@ var nnlunar;
                 c.translate(view.x, view.y);
                 c.scale(view.scale, view.scale);
                 //draw start
-                c.strokeStyle = "#FF0000";
+                c.strokeStyle = "#00FF00";
                 c.beginPath();
                 c.arc(_this.start.x, _this.start.y, 1, 0, 90);
                 c.stroke();
                 //draw langscape
+                if (_this.wall) {
+                    c.strokeStyle = "#FFFFFF";
+                    c.lineWidth = 1;
+                    c.beginPath();
+                    c.moveTo(_this.wall.left, _this.wall.top);
+                    c.lineTo(_this.wall.right, _this.wall.top);
+                    c.lineTo(_this.wall.right, _this.wall.bottom);
+                    c.lineTo(_this.wall.left, _this.wall.bottom);
+                    c.closePath();
+                    c.stroke();
+                }
                 c.strokeStyle = "#FFFFFF";
                 c.beginPath();
                 c.moveTo(_this.view.left, _this.target.y);
