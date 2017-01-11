@@ -259,7 +259,8 @@ var nnlunar;
                 x: 0,
                 y: 0,
                 width: 800,
-                height: 800
+                height: 800,
+                floor: 300,
             };
             this.start = {
                 x: -200,
@@ -370,23 +371,25 @@ var nnlunar;
                     if (l.active) {
                         _this.calcFunc(l, networks[i]);
                     }
+                    var bp = l.bottom;
                     l.update();
                     if (l.active) {
                         //check collision
-                        if (l.bottom >= _this.target.y) {
-                            if ((l.left > tleft) && (l.right < tright)) {
-                                if ((Math.abs(l.rotation) <= _this.target.minAng) && (l.vel.y <= _this.target.minVel)) {
-                                    l.land();
-                                }
-                                else {
-                                    l.crash();
-                                }
+                        if (l.bottom >= _this.target.y
+                            && bp < _this.target.y
+                            && l.left > tleft
+                            && l.right < tright) {
+                            if ((Math.abs(l.rotation) <= _this.target.minAng) && (l.vel.y <= _this.target.minVel)) {
+                                l.land();
                             }
                             else {
                                 l.crash();
                             }
                         }
-                        if (_this.wall) {
+                        else if (l.bottom >= _this.world.floor) {
+                            l.crash();
+                        }
+                        else if (_this.wall) {
                             if (l.right > _this.wall.left
                                 && l.left < _this.wall.right
                                 && l.bottom > _this.wall.top
@@ -447,8 +450,8 @@ var nnlunar;
                 }
                 c.strokeStyle = "#FFFFFF";
                 c.beginPath();
-                c.moveTo(_this.view.left, _this.target.y);
-                c.lineTo(_this.view.right, _this.target.y);
+                c.moveTo(_this.view.left, _this.world.floor);
+                c.lineTo(_this.view.right, _this.world.floor);
                 c.stroke();
                 c.strokeStyle = "#00FF00";
                 c.lineWidth = 5;
@@ -534,12 +537,14 @@ var nnlunar;
         LunarGameRaw.prototype.scoreFunc = function (l) {
             var score = 0;
             var dx = (l.pos.x - this.target.x) / this.world.width;
+            //var dy = (l.pos.y - this.target.y) / this.world.height;
             var dvy = l.vel.y / 0.35;
             var dr = l.rotation / 90;
             var df = (this.start.fuel - l.fuel) / this.start.fuel;
             if (l.crashed)
-                score += 4;
+                score += 5;
             score += dx * dx;
+            //score += dy * dy;
             score += dvy * dvy;
             score += dr * dr;
             score += df * df;

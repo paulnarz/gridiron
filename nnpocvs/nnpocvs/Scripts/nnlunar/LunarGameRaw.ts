@@ -6,7 +6,8 @@
             x: 0,
             y: 0,
             width: 800,
-            height: 800
+            height: 800,
+            floor: 300,
         }
         start = {
             x: -200,
@@ -98,15 +99,17 @@
 
         scoreFunc(l: Lander): number {
             var score = 0;
-            var dx = (l.pos.x - this.target.x) / this.world.width;            
+            var dx = (l.pos.x - this.target.x) / this.world.width;
+            //var dy = (l.pos.y - this.target.y) / this.world.height;
             var dvy = l.vel.y / 0.35;
             var dr = l.rotation / 90;
             var df = (this.start.fuel - l.fuel) / this.start.fuel;            
 
             if (l.crashed)
-                score += 4;
+                score += 5;
 
             score += dx * dx;
+            //score += dy * dy;
             score += dvy * dvy;
             score += dr * dr;
             score += df * df;            
@@ -291,25 +294,26 @@
                     this.calcFunc(l, networks[i]);
                 }
 
+                var bp = l.bottom;
                 l.update();                
 
                 if (l.active) {
                     //check collision
-                    if (l.bottom >= this.target.y) {
-                        if ((l.left > tleft) && (l.right < tright)) {
-                            if ((Math.abs(l.rotation) <= this.target.minAng) && (l.vel.y <= this.target.minVel)) {
-                                l.land();
-                            }
-                            else {
-                                l.crash();
-                            }
+                    if (l.bottom >= this.target.y
+                        && bp < this.target.y
+                        && l.left > tleft
+                        && l.right < tright) {
+                        if ((Math.abs(l.rotation) <= this.target.minAng) && (l.vel.y <= this.target.minVel)) {
+                            l.land();
                         }
                         else {
                             l.crash();
                         }
                     }
-
-                    if (this.wall) {
+                    else if (l.bottom >= this.world.floor) {
+                        l.crash();
+                    }
+                    else if (this.wall) {
                         if (l.right > this.wall.left
                             && l.left < this.wall.right
                             && l.bottom > this.wall.top
@@ -380,8 +384,8 @@
 
             c.strokeStyle = "#FFFFFF";
             c.beginPath();
-            c.moveTo(this.view.left, this.target.y)
-            c.lineTo(this.view.right, this.target.y);
+            c.moveTo(this.view.left, this.world.floor)
+            c.lineTo(this.view.right, this.world.floor);
             c.stroke();
 
             c.strokeStyle = "#00FF00";
