@@ -12,7 +12,7 @@
         drag = 0.9997;
         bouncing = 0;
         landed = false;
-        crashed = false;
+        crashed = 0;
         exploding = false;
         explodingCounter = 0;
         targetRotation = 0;
@@ -43,7 +43,7 @@
             this.thrustBuild = 0;
             this.bouncing = 0;
             this.landed = false;
-            this.crashed = false;
+            this.crashed = 0;
             this.active = true;
             this.exploding = false;
             this.explodingCounter = 0;
@@ -104,10 +104,10 @@
             this.thrustLevel = this.thrustBuild;
         }
 
-        crash(): void {
+        crash(crash: number): void {
             //console.log("crash", this.pos.toString(), this.vel.toString(), this.rotation);         
             this.landed = false;
-            this.crashed = true;
+            this.crashed = crash;
             this.active = false;
             this.exploding = true;
             this.explodingCounter = 0;
@@ -117,7 +117,7 @@
         land(): void {
             //console.log("land", this.pos.toString(), this.vel.toString(), this.rotation);
             this.landed = true;
-            this.crashed = false;
+            this.crashed = 0;
             this.active = false;
             this.thrustBuild = 0;
             this.color = 'green';

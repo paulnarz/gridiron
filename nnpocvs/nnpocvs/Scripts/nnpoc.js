@@ -14,7 +14,7 @@ var nnlunar;
             this.drag = 0.9997;
             this.bouncing = 0;
             this.landed = false;
-            this.crashed = false;
+            this.crashed = 0;
             this.exploding = false;
             this.explodingCounter = 0;
             this.targetRotation = 0;
@@ -41,7 +41,7 @@ var nnlunar;
             this.thrustBuild = 0;
             this.bouncing = 0;
             this.landed = false;
-            this.crashed = false;
+            this.crashed = 0;
             this.active = true;
             this.exploding = false;
             this.explodingCounter = 0;
@@ -98,10 +98,10 @@ var nnlunar;
                 this.fuel = 0;
             this.thrustLevel = this.thrustBuild;
         };
-        Lander.prototype.crash = function () {
+        Lander.prototype.crash = function (crash) {
             //console.log("crash", this.pos.toString(), this.vel.toString(), this.rotation);         
             this.landed = false;
-            this.crashed = true;
+            this.crashed = crash;
             this.active = false;
             this.exploding = true;
             this.explodingCounter = 0;
@@ -110,7 +110,7 @@ var nnlunar;
         Lander.prototype.land = function () {
             //console.log("land", this.pos.toString(), this.vel.toString(), this.rotation);
             this.landed = true;
-            this.crashed = false;
+            this.crashed = 0;
             this.active = false;
             this.thrustBuild = 0;
             this.color = 'green';
@@ -305,8 +305,8 @@ var nnlunar;
             //fitness
             this.evoOptions = {
                 population: 100,
-                elitism: 0.3,
-                randomBehaviour: 0.1,
+                elitism: 0.2,
+                randomBehaviour: 0.2,
                 mutationRate: 0.2,
                 mutationRange: 0.5,
                 nbChild: 2,
@@ -383,18 +383,18 @@ var nnlunar;
                                 l.land();
                             }
                             else {
-                                l.crash();
+                                l.crash(1);
                             }
                         }
                         else if (l.bottom >= _this.world.floor) {
-                            l.crash();
+                            l.crash(2);
                         }
                         else if (_this.wall) {
                             if (l.right > _this.wall.left
                                 && l.left < _this.wall.right
                                 && l.bottom > _this.wall.top
                                 && l.top < _this.wall.bottom) {
-                                l.crash();
+                                l.crash(3);
                             }
                         }
                         if (evo && !l.active) {
@@ -402,7 +402,7 @@ var nnlunar;
                             _this.stats.scores.push({
                                 score: score,
                                 landed: l.landed,
-                                crashed: l.crashed,
+                                crashed: !!l.crashed,
                                 data: _this.statFunc(l)
                             });
                             evo.networkScore(networks[i], score);
@@ -541,8 +541,7 @@ var nnlunar;
             var dvy = l.vel.y / 0.35;
             var dr = l.rotation / 90;
             var df = (this.start.fuel - l.fuel) / this.start.fuel;
-            if (l.crashed)
-                score += 5;
+            score += l.crashed * 5;
             score += dx * dx;
             //score += dy * dy;
             score += dvy * dvy;

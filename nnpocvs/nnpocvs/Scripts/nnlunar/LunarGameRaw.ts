@@ -64,8 +64,8 @@
         //fitness
         evoOptions: nnpoc.NeuroevolutionOptions = {
             population: 100,
-            elitism: 0.3,
-            randomBehaviour: 0.1,
+            elitism: 0.2,
+            randomBehaviour: 0.2,
             mutationRate: 0.2,
             mutationRange: 0.5,
             nbChild: 2,
@@ -98,16 +98,14 @@
         }
 
         scoreFunc(l: Lander): number {
-            var score = 0;
+            var score = 0;            
             var dx = (l.pos.x - this.target.x) / this.world.width;
             //var dy = (l.pos.y - this.target.y) / this.world.height;
             var dvy = l.vel.y / 0.35;
             var dr = l.rotation / 90;
             var df = (this.start.fuel - l.fuel) / this.start.fuel;            
 
-            if (l.crashed)
-                score += 5;
-
+            score += l.crashed * 5;
             score += dx * dx;
             //score += dy * dy;
             score += dvy * dvy;
@@ -307,18 +305,18 @@
                             l.land();
                         }
                         else {
-                            l.crash();
+                            l.crash(1);
                         }
                     }
                     else if (l.bottom >= this.world.floor) {
-                        l.crash();
+                        l.crash(2);
                     }
                     else if (this.wall) {
                         if (l.right > this.wall.left
                             && l.left < this.wall.right
                             && l.bottom > this.wall.top
                             && l.top < this.wall.bottom) {
-                            l.crash()
+                            l.crash(3)
                         }
                     }
                     
@@ -327,7 +325,7 @@
                         this.stats.scores.push({
                             score: score,
                             landed: l.landed,
-                            crashed: l.crashed,
+                            crashed: !!l.crashed,
                             data: this.statFunc(l)
                         });
                         evo.networkScore(networks[i], score);
