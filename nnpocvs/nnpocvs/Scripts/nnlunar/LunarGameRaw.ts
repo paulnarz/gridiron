@@ -17,10 +17,10 @@
         };
         target = {
             x: -209,
-            y: 253,
+            y: 250,
             width: 40,
             minVel: 0.15,
-            minAng: 5
+            minAng: 1
         };
         wall: Rectangle = undefined;
         view: View = {
@@ -66,7 +66,7 @@
             nbChild: 2,
             network: {
                 inputs: 6,
-                hiddens: [22, 22],
+                hiddens: [12, 12],
                 outputs: 2,
                 randomClamped: () => { return Math.random() * 8 - 4; }
             }
@@ -95,16 +95,16 @@
         scoreFunc(l: Lander): number {
             var score = 0;
             var dx = (l.pos.x - this.target.x) / this.world.width;
-            //var dy = (l.pos.y - this.target.y) / this.world.height;
+            var dy = (l.pos.y - this.target.y) / this.world.height;
             var dvy = l.vel.y / 0.35;
             var dr = l.rotation / 90;
             var df = (this.start.fuel - l.fuel) / this.start.fuel;
 
-            score += l.crashed * 5;
-            score += dx * dx;
-            //score += dy * dy;
-            score += dvy * dvy;
-            score += dr * dr;
+            score += l.crashed;// * 32;
+            score += dx * dx;// * 8;
+            score += dy * dy;// * 8;
+            score += dvy * dvy;// * 2;
+            score += dr * dr;// * 2;
             score += df * df;
             return score;
         }
@@ -315,7 +315,7 @@
                             && l.left < this.wall.right
                             && l.bottom > this.wall.top
                             && l.top < this.wall.bottom) {
-                            l.crash(3)
+                            l.crash(1)
                         }
                     }
 
