@@ -3,32 +3,27 @@
         //world       
         discreteThurst = false;
         world = {
-            x: 0,
+            x: -350,
             y: 0,
             width: 800,
             height: 800,
-            floor: 300,
+            floor: 500,
         }
         start = {
-            x: -200,
-            y: -100,
+            x: -500,
+            y: -200,
             rotation: 0,
-            fuel: 500
+            fuel: 1000
         };
         target = {
-            x: 200,
-            y: 300,
-            width: 100,
+            x: -209,
+            y: 253,
+            width: 40,
             minVel: 0.15,
             minAng: 5
         };
-        wall = {
-            top: 0,
-            bottom: 300,
-            left: -50,
-            right: 50
-        }
-        view = {
+        wall: Rectangle = undefined;
+        view: View = {
             x: 0,
             y: 0,
             scale: 1,
@@ -37,7 +32,7 @@
             top: 0,
             bottom: 0
         };
-        
+
         //display/debug        
         simDelay = 10;
         simSteps = 256;
@@ -45,7 +40,7 @@
         simColor = "#7F7F7F";
         updateTimeStep = 5;
         bestDisplay = 5;
-        bestColor = "#FFFFFF";        
+        bestColor = "#FFFFFF";
         bestExtraTime = 3000;
         logSimTime = false;
         logRenderTime = false;
@@ -93,24 +88,24 @@
             else {
                 l.thrust(result[0]);
             }
-            
+
             l.setRotation(nnpoc.lerp(result[1], -90, 90));
         }
 
         scoreFunc(l: Lander): number {
-            var score = 0;            
+            var score = 0;
             var dx = (l.pos.x - this.target.x) / this.world.width;
             //var dy = (l.pos.y - this.target.y) / this.world.height;
             var dvy = l.vel.y / 0.35;
             var dr = l.rotation / 90;
-            var df = (this.start.fuel - l.fuel) / this.start.fuel;            
+            var df = (this.start.fuel - l.fuel) / this.start.fuel;
 
             score += l.crashed * 5;
             score += dx * dx;
             //score += dy * dy;
             score += dvy * dvy;
             score += dr * dr;
-            score += df * df;            
+            score += df * df;
             return score;
         }
 
@@ -118,14 +113,15 @@
         SCREEN_WIDTH = window.innerWidth;
         SCREEN_HEIGHT = window.innerHeight;
         bestTime = 0;
-        lastSimTime = Date.now();        
+        lastSimTime = Date.now();
         lastRenderTime = Date.now();
         updateTime = 0;
         canvas: HTMLCanvasElement;
         context: CanvasRenderingContext2D;
         renderer: LanderRenderer;
+        landscape: Landscape;
         evo: nnpoc.Neuroevolution;
-        evoLanders: Lander[];        
+        evoLanders: Lander[];
         evoNetworks: nnpoc.Network[];
         bestLanders: Lander[];
         bestNetworks: nnpoc.Network[];
@@ -156,18 +152,18 @@
             window.addEventListener('resize', this.resizeGame);
             window.addEventListener('orientationchange', this.resizeGame);
 
-
             this.renderer = new LanderRenderer();
+            this.landscape = new Landscape();
             this.evo = new nnpoc.Neuroevolution(this.evoOptions);
-            this.evoLanders = [];            
+            this.evoLanders = [];
             this.bestNetworks = [];
             this.evolve();
-            this.resetLanders(this.evoLanders, this.evoNetworks);            
+            this.resetLanders(this.evoLanders, this.evoNetworks);
 
             this.simulate();
             this.render();
         }
-        
+
         evolve(): void {
             this.stats.scores.sort((a, b) => { return a.score - b.score; });
             this.stats.landed = 0;
@@ -243,8 +239,8 @@
                         this.bestLanders = [];
                 }
                 sims++;
-            }            
-           
+            }
+
             if (this.logSimTime) {
                 var simTime = Date.now() - start;
 
@@ -276,7 +272,7 @@
                     this.getBest(this.evoNetworks, this.bestNetworks, this.bestDisplay);
                     this.resetLanders(this.bestLanders, this.bestNetworks);
                     this.bestTime = 0;
-                } 
+                }
             }
         }
 
@@ -293,9 +289,12 @@
                 }
 
                 var bp = l.bottom;
-                l.update();                
+                l.update();
 
                 if (l.active) {
+                    if (this.landscape.checkLanderscapeCollision(l)) {
+                        l.crash(1);
+                    }
                     //check collision
                     if (l.bottom >= this.target.y
                         && bp < this.target.y
@@ -309,7 +308,7 @@
                         }
                     }
                     else if (l.bottom >= this.world.floor) {
-                        l.crash(2);
+                        l.crash(1);
                     }
                     else if (this.wall) {
                         if (l.right > this.wall.left
@@ -319,7 +318,7 @@
                             l.crash(3)
                         }
                     }
-                    
+
                     if (evo && !l.active) {
                         var score = this.scoreFunc(l);
                         this.stats.scores.push({
@@ -330,7 +329,7 @@
                         });
                         evo.networkScore(networks[i], score);
                     }
-                }      
+                }
 
                 if (l.active) {
                     activeLanders = true;
@@ -349,7 +348,7 @@
             while (this.updateTime > this.updateTimeStep) {
                 updates++;
                 this.update();
-                this.updateTime -= this.updateTimeStep;                
+                this.updateTime -= this.updateTimeStep;
             }
 
             requestAnimationFrame(this.render);
@@ -360,6 +359,8 @@
             c.save();
             c.translate(view.x, view.y);
             c.scale(view.scale, view.scale);
+
+            this.landscape.render(c, view);
 
             //draw start
             c.strokeStyle = "#00FF00";
@@ -401,10 +402,10 @@
                 for (let i = 0, len = Math.min(this.bestLanders.length, this.bestDisplay); i < len; i++) {
                     this.renderer.render(this.bestLanders[i], c, view.scale, this.bestColor);
                 }
-            }            
+            }
 
             c.restore();
-            
+
             if (this.logRenderTime) {
                 var renderTime = Date.now() - start;
 
@@ -412,7 +413,7 @@
                     noww: Date.now(),
                     elapsed: start - this.lastRenderTime,
                     renderTime: renderTime,
-                    updates: updates    
+                    updates: updates
                 });
             }
             this.lastRenderTime = Date.now();
@@ -425,7 +426,7 @@
             this.view.left = -this.view.x / this.view.scale;
             this.view.top = -this.view.y / this.view.scale;
             this.view.right = this.view.left + (this.SCREEN_WIDTH / this.view.scale);
-            this.view.bottom = this.view.top + (this.SCREEN_HEIGHT / this.view.scale);            
+            this.view.bottom = this.view.top + (this.SCREEN_HEIGHT / this.view.scale);
         }
 
         resizeGame = (): void => {
@@ -468,5 +469,12 @@
                 }
             }
         }
+    }
+
+    interface Rectangle {
+        top: number;
+        bottom: number;
+        left: number;
+        right: number;
     }
 }

@@ -231,6 +231,402 @@ var nnlunar;
 })(nnlunar || (nnlunar = {}));
 var nnlunar;
 (function (nnlunar) {
+    var Landscape = (function () {
+        function Landscape() {
+            this.points = [];
+            this.lines = [];
+            this.stars = [];
+            this.availableZones = [];
+            this.zoneCombis = [];
+            this.currentCombi = 0;
+            this.zoneInfos = [];
+            this.landscale = 2.5;
+            this.flickerProgress = 0;
+            this.counter = 0;
+            this.setupData();
+            this.rightedge = this.tileWidth = this.points[this.points.length - 1].x * this.landscale;
+            for (var i = 0; i < this.points.length; i++) {
+                var p = this.points[i];
+                p.x *= this.landscale;
+                p.y *= this.landscale;
+                p.y -= 900;
+            }
+            for (var i = 1; i < this.points.length; i++) {
+                var p1 = this.points[i - 1];
+                var p2 = this.points[i];
+                this.lines.push(new LandscapeLine(p1, p2));
+            }
+            for (var i = 0; i < this.lines.length; i++) {
+                if (Math.random() < 0.1) {
+                    var line = this.lines[i];
+                    var star = {
+                        x: line.p1.x,
+                        y: Math.random() * 600
+                    };
+                    if ((star.y < line.p1.y) && (star.y < line.p2.y)) {
+                        this.stars.push(star);
+                    }
+                }
+            }
+        }
+        Landscape.prototype.render = function (c, view) {
+            var offset = 0;
+            while (view.left - offset > this.rightedge) {
+                offset += this.rightedge;
+            }
+            while (view.left - offset < 0) {
+                offset -= this.rightedge;
+            }
+            var startOffset = offset;
+            var i = 0;
+            while (this.lines[i].p2.x + offset < view.left) {
+                i++;
+                if (i > this.lines.length) {
+                    i = 0;
+                    offset += this.rightedge;
+                }
+            }
+            c.beginPath();
+            var line = this.lines[i];
+            var offsetY = 0;
+            if (Math.random() < 0.3) {
+                offset += (0.2 / view.scale);
+                offsetY = (0.2 / view.scale);
+            }
+            c.moveTo(line.p1.x + offset, line.p1.y + offsetY);
+            var zoneInfoIndex = 0;
+            while ((line = this.lines[i]).p1.x + offset < view.right) {
+                var point = line.p2;
+                c.lineTo(point.x + offset, point.y);
+                if ((this.counter % 20 > 10) && (line.multiplier != 1)) {
+                    var infoBox;
+                    if (!this.zoneInfos[zoneInfoIndex]) {
+                        infoBox = this.zoneInfos[zoneInfoIndex] = new InfoBox(1, 50);
+                        document.body.appendChild(infoBox.domElement);
+                    }
+                    else {
+                        infoBox = this.zoneInfos[zoneInfoIndex];
+                        infoBox.show();
+                    }
+                    infoBox.setText(line.multiplier + 'x');
+                    infoBox.setX(((((line.p2.x - line.p1.x) / 2) + line.p1.x + offset) * view.scale) + view.x);
+                    infoBox.setY(((line.p2.y + 2) * view.scale) + view.y);
+                    zoneInfoIndex++;
+                }
+                i++;
+                if (i >= this.lines.length) {
+                    i = 0;
+                    offset += this.rightedge;
+                }
+            }
+            var flickerAmount = Math.sin(this.counter * 0.8) * 0.5 + 0.5;
+            if (flickerAmount > 0.5) {
+                c.lineWidth = 2 / view.scale;
+                var channel = Math.round((flickerAmount - 0.5) * (100));
+                c.strokeStyle = "rgb(" + channel + "," + channel + "," + channel + ")";
+                c.stroke();
+            }
+            c.strokeStyle = 'white';
+            c.lineWidth = 1 / view.scale * (flickerAmount * 0.2 + 0.8);
+            c.lineJoin = 'bevel';
+            c.stroke();
+            for (var i = zoneInfoIndex; i < this.zoneInfos.length; i++) {
+                this.zoneInfos[i].hide();
+            }
+            i = 0;
+            offset = startOffset;
+            while (this.stars[i].x + offset < view.left) {
+                i++;
+                if (i >= this.stars.length) {
+                    i = 0;
+                    offset += this.rightedge;
+                }
+            }
+            c.beginPath();
+            var star;
+            while ((star = this.stars[i]).x + offset < view.right) {
+                var starx = star.x + offset;
+                var stary = star.y;
+                while (view.bottom < stary)
+                    stary -= 600;
+                c.rect(starx, stary, (1 / view.scale), (1 / view.scale));
+                if (stary - 600 > view.top) {
+                    stary -= 600;
+                    c.rect(starx, stary, (1 / view.scale), (1 / view.scale));
+                }
+                i++;
+                if (i >= this.stars.length) {
+                    i = 0;
+                    offset += this.rightedge;
+                }
+            }
+            c.stroke();
+        };
+        Landscape.prototype.setZones = function () {
+            for (var i = 0; i < this.lines.length; i++) {
+                this.lines[i].multiplier = 1;
+            }
+            var combi = this.zoneCombis[this.currentCombi];
+            for (var i = 0; i < combi.length; i++) {
+                var zonenumber = combi[i];
+                var zone = this.availableZones[zonenumber];
+                var line = this.lines[zone.lineNum];
+                line.multiplier = zone.multiplier;
+            }
+            this.currentCombi++;
+            if (this.currentCombi >= this.zoneCombis.length)
+                this.currentCombi = 0;
+        };
+        Landscape.prototype.checkLanderscapeCollision = function (lander) {
+            var lines = this.lines, right = lander.right % this.tileWidth, left = lander.left % this.tileWidth;
+            while (right < 0) {
+                right += this.tileWidth;
+                left += this.tileWidth;
+            }
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i];
+                if (!((right < line.p1.x) || (left > line.p2.x))) {
+                    lander.altitude = line.p1.y - lander.bottom;
+                    //if (line.landable) {
+                    //    if (lander.bottom >= line.p1.y) {
+                    //        if ((left > line.p1.x) && (right < line.p2.x)) {
+                    //            if ((lander.rotation == 0) && (lander.vel.y < 0.15)) {
+                    //                setLanded(line);
+                    //            } else {
+                    //                setCrashed();
+                    //            }
+                    //        } else {
+                    //            setCrashed();
+                    //        }
+                    //    }
+                    //} else
+                    if ((lander.bottom > line.p2.y) || (lander.bottom > line.p1.y)) {
+                        lander.bottomRight.x = right;
+                        lander.bottomLeft.x = left;
+                        if (this.pointIsLessThanLine(lander.bottomLeft, line.p1, line.p2) || this.pointIsLessThanLine(lander.bottomRight, line.p1, line.p2)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        };
+        Landscape.prototype.pointIsLessThanLine = function (point, linepoint1, linepoint2) {
+            var dist = (point.x - linepoint1.x) / (linepoint2.x - linepoint1.x);
+            var yhitpoint = linepoint1.y + ((linepoint2.y - linepoint1.y) * dist);
+            return ((dist > 0) && (dist < 1) && (yhitpoint <= point.y));
+        };
+        Landscape.prototype.setupData = function () {
+            var points = this.points;
+            var availableZones = this.availableZones;
+            var zoneCombis = this.zoneCombis;
+            points.push(new nnlunar.Vector2(0.5, 355.55));
+            points.push(new nnlunar.Vector2(5.45, 355.55));
+            points.push(new nnlunar.Vector2(6.45, 359.4));
+            points.push(new nnlunar.Vector2(11.15, 359.4));
+            points.push(new nnlunar.Vector2(12.1, 363.65));
+            points.push(new nnlunar.Vector2(14.6, 363.65));
+            points.push(new nnlunar.Vector2(15.95, 375.75));
+            points.push(new nnlunar.Vector2(19.25, 388));
+            points.push(new nnlunar.Vector2(19.25, 391.9));
+            points.push(new nnlunar.Vector2(21.65, 400));
+            points.push(new nnlunar.Vector2(28.85, 404.25));
+            points.push(new nnlunar.Vector2(30.7, 412.4));
+            points.push(new nnlunar.Vector2(33.05, 416.7));
+            points.push(new nnlunar.Vector2(37.9, 420.5));
+            points.push(new nnlunar.Vector2(42.7, 420.5));
+            points.push(new nnlunar.Vector2(47.4, 416.65));
+            points.push(new nnlunar.Vector2(51.75, 409.5));
+            points.push(new nnlunar.Vector2(56.55, 404.25));
+            points.push(new nnlunar.Vector2(61.3, 400));
+            points.push(new nnlunar.Vector2(63.65, 396.15));
+            points.push(new nnlunar.Vector2(68, 391.9));
+            points.push(new nnlunar.Vector2(70.3, 388));
+            points.push(new nnlunar.Vector2(75.1, 386.1));
+            points.push(new nnlunar.Vector2(79.85, 379.95));
+            points.push(new nnlunar.Vector2(84.7, 378.95));
+            points.push(new nnlunar.Vector2(89.05, 375.65));
+            points.push(new nnlunar.Vector2(93.75, 375.65));
+            points.push(new nnlunar.Vector2(98.5, 376.55));
+            points.push(new nnlunar.Vector2(103.2, 379.95));
+            points.push(new nnlunar.Vector2(104.3, 383.8));
+            points.push(new nnlunar.Vector2(107.55, 388));
+            points.push(new nnlunar.Vector2(108.95, 391.9));
+            points.push(new nnlunar.Vector2(112.4, 396.15));
+            points.push(new nnlunar.Vector2(113.3, 400));
+            points.push(new nnlunar.Vector2(117.1, 404.25));
+            points.push(new nnlunar.Vector2(121.95, 404.25));
+            points.push(new nnlunar.Vector2(125.3, 396.3));
+            points.push(new nnlunar.Vector2(128.6, 394.2));
+            points.push(new nnlunar.Vector2(132.45, 396.15));
+            points.push(new nnlunar.Vector2(135.75, 399.9));
+            points.push(new nnlunar.Vector2(138.15, 408.15));
+            points.push(new nnlunar.Vector2(144.7, 412.4));
+            points.push(new nnlunar.Vector2(146.3, 424.8));
+            points.push(new nnlunar.Vector2(149.55, 436.65));
+            points.push(new nnlunar.Vector2(149.55, 441.05));
+            points.push(new nnlunar.Vector2(154.35, 444.85));
+            points.push(new nnlunar.Vector2(163.45, 444.85));
+            points.push(new nnlunar.Vector2(168.15, 441.05));
+            points.push(new nnlunar.Vector2(172.95, 436.75));
+            points.push(new nnlunar.Vector2(175.45, 432.9));
+            points.push(new nnlunar.Vector2(179.7, 428.6));
+            points.push(new nnlunar.Vector2(181.95, 424.8));
+            points.push(new nnlunar.Vector2(186.7, 422.5));
+            points.push(new nnlunar.Vector2(189.15, 412.4));
+            points.push(new nnlunar.Vector2(191.55, 404.35));
+            points.push(new nnlunar.Vector2(196.35, 402.4));
+            points.push(new nnlunar.Vector2(200.7, 398.1));
+            points.push(new nnlunar.Vector2(205.45, 391.9));
+            points.push(new nnlunar.Vector2(210.15, 383.8));
+            points.push(new nnlunar.Vector2(212.55, 375.75));
+            points.push(new nnlunar.Vector2(216.85, 371.8));
+            points.push(new nnlunar.Vector2(219.3, 367.55));
+            points.push(new nnlunar.Vector2(220.65, 363.65));
+            points.push(new nnlunar.Vector2(224, 359.4));
+            points.push(new nnlunar.Vector2(228.8, 359.4));
+            points.push(new nnlunar.Vector2(233.55, 355.55));
+            points.push(new nnlunar.Vector2(237.85, 348.45));
+            points.push(new nnlunar.Vector2(242.65, 343.2));
+            points.push(new nnlunar.Vector2(245, 335.15));
+            points.push(new nnlunar.Vector2(247.35, 322.8));
+            points.push(new nnlunar.Vector2(247.3, 314.5));
+            points.push(new nnlunar.Vector2(248.35, 306.55));
+            points.push(new nnlunar.Vector2(252.2, 296.5));
+            points.push(new nnlunar.Vector2(256.55, 294.55));
+            points.push(new nnlunar.Vector2(257.95, 290.4));
+            points.push(new nnlunar.Vector2(261.25, 285.95));
+            points.push(new nnlunar.Vector2(265.95, 285.95));
+            points.push(new nnlunar.Vector2(267, 290.25));
+            points.push(new nnlunar.Vector2(271.75, 290.25));
+            points.push(new nnlunar.Vector2(273.25, 294.55));
+            points.push(new nnlunar.Vector2(275.2, 294.55));
+            points.push(new nnlunar.Vector2(278.95, 296.5));
+            points.push(new nnlunar.Vector2(282.25, 300.3));
+            points.push(new nnlunar.Vector2(284.7, 308.45));
+            points.push(new nnlunar.Vector2(291.85, 312.65));
+            points.push(new nnlunar.Vector2(298.55, 330.8));
+            points.push(new nnlunar.Vector2(303.25, 331.8));
+            points.push(new nnlunar.Vector2(308, 335.05));
+            points.push(new nnlunar.Vector2(309, 338.9));
+            points.push(new nnlunar.Vector2(312.35, 343.2));
+            points.push(new nnlunar.Vector2(313.8, 347.05));
+            points.push(new nnlunar.Vector2(317.05, 351.4));
+            points.push(new nnlunar.Vector2(321.9, 351.4));
+            points.push(new nnlunar.Vector2(322.85, 363.8));
+            points.push(new nnlunar.Vector2(326.6, 375.75));
+            points.push(new nnlunar.Vector2(326.6, 379.95));
+            points.push(new nnlunar.Vector2(330.9, 379.95));
+            points.push(new nnlunar.Vector2(332.4, 383.8));
+            points.push(new nnlunar.Vector2(335.8, 388));
+            points.push(new nnlunar.Vector2(338.1, 396.15));
+            points.push(new nnlunar.Vector2(340.45, 400.1));
+            points.push(new nnlunar.Vector2(345.3, 404.25));
+            points.push(new nnlunar.Vector2(346.25, 416.65));
+            points.push(new nnlunar.Vector2(349.6, 428.7));
+            points.push(new nnlunar.Vector2(349.6, 432.85));
+            points.push(new nnlunar.Vector2(350.95, 436.75));
+            points.push(new nnlunar.Vector2(354.3, 441.05));
+            points.push(new nnlunar.Vector2(359, 441.05));
+            points.push(new nnlunar.Vector2(361.4, 449.1));
+            points.push(new nnlunar.Vector2(363.95, 453));
+            points.push(new nnlunar.Vector2(368.2, 457.2));
+            points.push(new nnlunar.Vector2(372.9, 461));
+            points.push(new nnlunar.Vector2(410.2, 461));
+            points.push(new nnlunar.Vector2(412.55, 449.1));
+            points.push(new nnlunar.Vector2(417.4, 441.05));
+            points.push(new nnlunar.Vector2(419.7, 432.9));
+            points.push(new nnlunar.Vector2(422.05, 432.9));
+            points.push(new nnlunar.Vector2(425.45, 424.8));
+            points.push(new nnlunar.Vector2(428.8, 422.35));
+            points.push(new nnlunar.Vector2(433.45, 416.65));
+            points.push(new nnlunar.Vector2(438.25, 415.15));
+            points.push(new nnlunar.Vector2(442.6, 412.4));
+            points.push(new nnlunar.Vector2(447.4, 412.4));
+            points.push(new nnlunar.Vector2(448.8, 416.65));
+            points.push(new nnlunar.Vector2(454.55, 430.55));
+            points.push(new nnlunar.Vector2(455.5, 434.8));
+            points.push(new nnlunar.Vector2(459.25, 438.6));
+            points.push(new nnlunar.Vector2(462.6, 440.9));
+            points.push(new nnlunar.Vector2(466, 444.85));
+            points.push(new nnlunar.Vector2(468.35, 452.9));
+            points.push(new nnlunar.Vector2(475.55, 457.3));
+            points.push(new nnlunar.Vector2(484.7, 457.3));
+            points.push(new nnlunar.Vector2(494.7, 458.2));
+            points.push(new nnlunar.Vector2(503.75, 461.1));
+            points.push(new nnlunar.Vector2(522.2, 461.1));
+            points.push(new nnlunar.Vector2(524.75, 453));
+            points.push(new nnlunar.Vector2(527.1, 441.05));
+            points.push(new nnlunar.Vector2(527.1, 432.9));
+            points.push(new nnlunar.Vector2(531.9, 432.9));
+            points.push(new nnlunar.Vector2(534.15, 424.8));
+            points.push(new nnlunar.Vector2(538.6, 420.5));
+            points.push(new nnlunar.Vector2(540.9, 416.65));
+            points.push(new nnlunar.Vector2(542.35, 412.5));
+            points.push(new nnlunar.Vector2(545.7, 408));
+            points.push(new nnlunar.Vector2(550.45, 408));
+            points.push(new nnlunar.Vector2(552.85, 398.1));
+            points.push(new nnlunar.Vector2(554.75, 389.95));
+            points.push(new nnlunar.Vector2(559.55, 388));
+            points.push(new nnlunar.Vector2(564.35, 391.9));
+            points.push(new nnlunar.Vector2(573.35, 391.9));
+            points.push(new nnlunar.Vector2(578.1, 388));
+            points.push(new nnlunar.Vector2(579.55, 379.95));
+            points.push(new nnlunar.Vector2(582.9, 369.4));
+            points.push(new nnlunar.Vector2(587.75, 367.55));
+            points.push(new nnlunar.Vector2(588.65, 363.8));
+            points.push(new nnlunar.Vector2(592.05, 359.5));
+            points.push(new nnlunar.Vector2(596.85, 355.55));
+            availableZones.push(new LandingZone(0, 4));
+            availableZones.push(new LandingZone(13, 3));
+            availableZones.push(new LandingZone(25, 4));
+            availableZones.push(new LandingZone(34, 4));
+            availableZones.push(new LandingZone(63, 5));
+            availableZones.push(new LandingZone(75, 4));
+            availableZones.push(new LandingZone(106, 5));
+            availableZones.push(new LandingZone(111, 2));
+            availableZones.push(new LandingZone(121, 5));
+            availableZones.push(new LandingZone(133, 2));
+            availableZones.push(new LandingZone(148, 3));
+            zoneCombis.push([2, 3, 7, 9]);
+            zoneCombis.push([7, 8, 9, 10]);
+            zoneCombis.push([2, 3, 7, 9]);
+            zoneCombis.push([1, 4, 7, 9]);
+            zoneCombis.push([0, 5, 7, 9]);
+            zoneCombis.push([6, 7, 8, 9]);
+            zoneCombis.push([1, 4, 7, 9]);
+        };
+        return Landscape;
+    }());
+    nnlunar.Landscape = Landscape;
+    var LandscapeLine = (function () {
+        function LandscapeLine(p1, p2) {
+            this.p1 = p1;
+            this.p2 = p2;
+            this.landable = (p1.y == p2.y);
+            this.multiplier = 1;
+        }
+        return LandscapeLine;
+    }());
+    var LandingZone = (function () {
+        function LandingZone(lineNum, multi) {
+            this.lineNum = lineNum;
+            this.multiplier = multi;
+        }
+        return LandingZone;
+    }());
+    var InfoBox = (function () {
+        function InfoBox(align, width) {
+            this.align = align;
+            this.width = width;
+        }
+        InfoBox.prototype.hide = function () {
+        };
+        return InfoBox;
+    }());
+})(nnlunar || (nnlunar = {}));
+var nnlunar;
+(function (nnlunar) {
     var LunarGamePhaser = (function () {
         function LunarGamePhaser() {
             this.game = new Phaser.Game(800, 600, Phaser.AUTO, "content", {
@@ -256,31 +652,26 @@ var nnlunar;
             //world       
             this.discreteThurst = false;
             this.world = {
-                x: 0,
+                x: -350,
                 y: 0,
                 width: 800,
                 height: 800,
-                floor: 300,
+                floor: 500,
             };
             this.start = {
-                x: -200,
-                y: -100,
+                x: -500,
+                y: -200,
                 rotation: 0,
-                fuel: 500
+                fuel: 1000
             };
             this.target = {
-                x: 200,
-                y: 300,
-                width: 100,
+                x: -209,
+                y: 253,
+                width: 40,
                 minVel: 0.15,
                 minAng: 5
             };
-            this.wall = {
-                top: 0,
-                bottom: 300,
-                left: -50,
-                right: 50
-            };
+            this.wall = undefined;
             this.view = {
                 x: 0,
                 y: 0,
@@ -374,6 +765,9 @@ var nnlunar;
                     var bp = l.bottom;
                     l.update();
                     if (l.active) {
+                        if (_this.landscape.checkLanderscapeCollision(l)) {
+                            l.crash(1);
+                        }
                         //check collision
                         if (l.bottom >= _this.target.y
                             && bp < _this.target.y
@@ -387,7 +781,7 @@ var nnlunar;
                             }
                         }
                         else if (l.bottom >= _this.world.floor) {
-                            l.crash(2);
+                            l.crash(1);
                         }
                         else if (_this.wall) {
                             if (l.right > _this.wall.left
@@ -431,6 +825,7 @@ var nnlunar;
                 c.save();
                 c.translate(view.x, view.y);
                 c.scale(view.scale, view.scale);
+                _this.landscape.render(c, view);
                 //draw start
                 c.strokeStyle = "#00FF00";
                 c.beginPath();
@@ -498,6 +893,7 @@ var nnlunar;
             window.addEventListener('resize', this.resizeGame);
             window.addEventListener('orientationchange', this.resizeGame);
             this.renderer = new nnlunar.LanderRenderer();
+            this.landscape = new nnlunar.Landscape();
             this.evo = new nnpoc.Neuroevolution(this.evoOptions);
             this.evoLanders = [];
             this.bestNetworks = [];
