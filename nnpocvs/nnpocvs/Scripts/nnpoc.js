@@ -1,5 +1,110 @@
 var nnlunar;
 (function (nnlunar) {
+    (function (Keys) {
+        Keys[Keys["BACKSPACE"] = 8] = "BACKSPACE";
+        Keys[Keys["TAB"] = 9] = "TAB";
+        Keys[Keys["ENTER"] = 13] = "ENTER";
+        Keys[Keys["SHIFT"] = 16] = "SHIFT";
+        Keys[Keys["CTRL"] = 17] = "CTRL";
+        Keys[Keys["ALT"] = 18] = "ALT";
+        Keys[Keys["PAUSE"] = 19] = "PAUSE";
+        Keys[Keys["CAPS_LOCK"] = 20] = "CAPS_LOCK";
+        Keys[Keys["ESCAPE"] = 27] = "ESCAPE";
+        Keys[Keys["SPACE"] = 32] = "SPACE";
+        Keys[Keys["PAGE_UP"] = 33] = "PAGE_UP";
+        Keys[Keys["PAGE_DOWN"] = 34] = "PAGE_DOWN";
+        Keys[Keys["END"] = 35] = "END";
+        Keys[Keys["HOME"] = 36] = "HOME";
+        Keys[Keys["LEFT_ARROW"] = 37] = "LEFT_ARROW";
+        Keys[Keys["UP_ARROW"] = 38] = "UP_ARROW";
+        Keys[Keys["RIGHT_ARROW"] = 39] = "RIGHT_ARROW";
+        Keys[Keys["DOWN_ARROW"] = 40] = "DOWN_ARROW";
+        Keys[Keys["INSERT"] = 45] = "INSERT";
+        Keys[Keys["DELETE"] = 46] = "DELETE";
+        Keys[Keys["KEY_0"] = 48] = "KEY_0";
+        Keys[Keys["KEY_1"] = 49] = "KEY_1";
+        Keys[Keys["KEY_2"] = 50] = "KEY_2";
+        Keys[Keys["KEY_3"] = 51] = "KEY_3";
+        Keys[Keys["KEY_4"] = 52] = "KEY_4";
+        Keys[Keys["KEY_5"] = 53] = "KEY_5";
+        Keys[Keys["KEY_6"] = 54] = "KEY_6";
+        Keys[Keys["KEY_7"] = 55] = "KEY_7";
+        Keys[Keys["KEY_8"] = 56] = "KEY_8";
+        Keys[Keys["KEY_9"] = 57] = "KEY_9";
+        Keys[Keys["KEY_A"] = 65] = "KEY_A";
+        Keys[Keys["KEY_B"] = 66] = "KEY_B";
+        Keys[Keys["KEY_C"] = 67] = "KEY_C";
+        Keys[Keys["KEY_D"] = 68] = "KEY_D";
+        Keys[Keys["KEY_E"] = 69] = "KEY_E";
+        Keys[Keys["KEY_F"] = 70] = "KEY_F";
+        Keys[Keys["KEY_G"] = 71] = "KEY_G";
+        Keys[Keys["KEY_H"] = 72] = "KEY_H";
+        Keys[Keys["KEY_I"] = 73] = "KEY_I";
+        Keys[Keys["KEY_J"] = 74] = "KEY_J";
+        Keys[Keys["KEY_K"] = 75] = "KEY_K";
+        Keys[Keys["KEY_L"] = 76] = "KEY_L";
+        Keys[Keys["KEY_M"] = 77] = "KEY_M";
+        Keys[Keys["KEY_N"] = 78] = "KEY_N";
+        Keys[Keys["KEY_O"] = 79] = "KEY_O";
+        Keys[Keys["KEY_P"] = 80] = "KEY_P";
+        Keys[Keys["KEY_Q"] = 81] = "KEY_Q";
+        Keys[Keys["KEY_R"] = 82] = "KEY_R";
+        Keys[Keys["KEY_S"] = 83] = "KEY_S";
+        Keys[Keys["KEY_T"] = 84] = "KEY_T";
+        Keys[Keys["KEY_U"] = 85] = "KEY_U";
+        Keys[Keys["KEY_V"] = 86] = "KEY_V";
+        Keys[Keys["KEY_W"] = 87] = "KEY_W";
+        Keys[Keys["KEY_X"] = 88] = "KEY_X";
+        Keys[Keys["KEY_Y"] = 89] = "KEY_Y";
+        Keys[Keys["KEY_Z"] = 90] = "KEY_Z";
+        Keys[Keys["LEFT_META"] = 91] = "LEFT_META";
+        Keys[Keys["RIGHT_META"] = 92] = "RIGHT_META";
+        Keys[Keys["SELECT"] = 93] = "SELECT";
+        Keys[Keys["NUMPAD_0"] = 96] = "NUMPAD_0";
+        Keys[Keys["NUMPAD_1"] = 97] = "NUMPAD_1";
+        Keys[Keys["NUMPAD_2"] = 98] = "NUMPAD_2";
+        Keys[Keys["NUMPAD_3"] = 99] = "NUMPAD_3";
+        Keys[Keys["NUMPAD_4"] = 100] = "NUMPAD_4";
+        Keys[Keys["NUMPAD_5"] = 101] = "NUMPAD_5";
+        Keys[Keys["NUMPAD_6"] = 102] = "NUMPAD_6";
+        Keys[Keys["NUMPAD_7"] = 103] = "NUMPAD_7";
+        Keys[Keys["NUMPAD_8"] = 104] = "NUMPAD_8";
+        Keys[Keys["NUMPAD_9"] = 105] = "NUMPAD_9";
+        Keys[Keys["MULTIPLY"] = 106] = "MULTIPLY";
+        Keys[Keys["ADD"] = 107] = "ADD";
+        Keys[Keys["SUBTRACT"] = 109] = "SUBTRACT";
+        Keys[Keys["DECIMAL"] = 110] = "DECIMAL";
+        Keys[Keys["DIVIDE"] = 111] = "DIVIDE";
+        Keys[Keys["F1"] = 112] = "F1";
+        Keys[Keys["F2"] = 113] = "F2";
+        Keys[Keys["F3"] = 114] = "F3";
+        Keys[Keys["F4"] = 115] = "F4";
+        Keys[Keys["F5"] = 116] = "F5";
+        Keys[Keys["F6"] = 117] = "F6";
+        Keys[Keys["F7"] = 118] = "F7";
+        Keys[Keys["F8"] = 119] = "F8";
+        Keys[Keys["F9"] = 120] = "F9";
+        Keys[Keys["F10"] = 121] = "F10";
+        Keys[Keys["F11"] = 122] = "F11";
+        Keys[Keys["F12"] = 123] = "F12";
+        Keys[Keys["NUM_LOCK"] = 144] = "NUM_LOCK";
+        Keys[Keys["SCROLL_LOCK"] = 145] = "SCROLL_LOCK";
+        Keys[Keys["SEMICOLON"] = 186] = "SEMICOLON";
+        Keys[Keys["EQUALS"] = 187] = "EQUALS";
+        Keys[Keys["COMMA"] = 188] = "COMMA";
+        Keys[Keys["DASH"] = 189] = "DASH";
+        Keys[Keys["PERIOD"] = 190] = "PERIOD";
+        Keys[Keys["FORWARD_SLASH"] = 191] = "FORWARD_SLASH";
+        Keys[Keys["GRAVE_ACCENT"] = 192] = "GRAVE_ACCENT";
+        Keys[Keys["OPEN_BRACKET"] = 219] = "OPEN_BRACKET";
+        Keys[Keys["BACK_SLASH"] = 220] = "BACK_SLASH";
+        Keys[Keys["CLOSE_BRACKET"] = 221] = "CLOSE_BRACKET";
+        Keys[Keys["SINGLE_QUOTE"] = 222] = "SINGLE_QUOTE";
+    })(nnlunar.Keys || (nnlunar.Keys = {}));
+    var Keys = nnlunar.Keys;
+})(nnlunar || (nnlunar = {}));
+var nnlunar;
+(function (nnlunar) {
     var Lander = (function () {
         function Lander() {
             this.vel = new nnlunar.Vector2(0, 0);
@@ -25,7 +130,7 @@ var nnlunar;
             this.altitude = 0;
             this.active = true;
             this.fuel = 0;
-            this.scale = 0.8;
+            this.scale = 1;
             this.left = 0;
             this.right = 0;
             this.bottom = 0;
@@ -37,7 +142,7 @@ var nnlunar;
             this.vel.reset(0, 0);
             this.pos.reset(0, 0);
             this.rotation = this.targetRotation = 0;
-            this.scale = 1;
+            this.scale = 0.7;
             this.thrustBuild = 0;
             this.bouncing = 0;
             this.landed = false;
@@ -240,7 +345,7 @@ var nnlunar;
             this.zoneCombis = [];
             this.currentCombi = 0;
             this.zoneInfos = [];
-            this.landscale = 2.5;
+            this.landscale = 1.75;
             this.flickerProgress = 0;
             this.counter = 0;
             this.setupData();
@@ -249,7 +354,7 @@ var nnlunar;
                 var p = this.points[i];
                 p.x *= this.landscale;
                 p.y *= this.landscale;
-                p.y -= 900;
+                p.y -= this.landscale * 250;
             }
             for (var i = 1; i < this.points.length; i++) {
                 var p1 = this.points[i - 1];
@@ -652,22 +757,23 @@ var nnlunar;
             //world       
             this.discreteThurst = false;
             this.world = {
-                x: -350,
+                x: 0,
                 y: 0,
                 width: 800,
                 height: 800,
                 floor: 500,
             };
             this.start = {
-                x: -500,
-                y: -200,
+                x: -250,
+                y: -250,
                 rotation: 0,
                 fuel: 1000
             };
             this.target = {
-                x: -209,
-                y: 250,
-                width: 40,
+                x: -50,
+                y: 245,
+                width: 30,
+                height: 5,
                 minVel: 0.15,
                 minAng: 1
             };
@@ -681,12 +787,11 @@ var nnlunar;
                 top: 0,
                 bottom: 0
             };
-            //display/debug        
+            //display/debug                
             this.simDelay = 10;
-            this.simSteps = 256;
-            this.simDisplay = 25;
+            this.simDisplay = 0;
             this.simColor = "#7F7F7F";
-            this.updateTimeStep = 5;
+            this.updateTimeStep = 2.50;
             this.bestDisplay = 5;
             this.bestColor = "#FFFFFF";
             this.bestExtraTime = 3000;
@@ -702,8 +807,8 @@ var nnlunar;
                 mutationRange: 0.5,
                 nbChild: 2,
                 network: {
-                    inputs: 6,
-                    hiddens: [12, 12],
+                    inputs: 8,
+                    hiddens: [8, 8],
                     outputs: 2,
                     randomClamped: function () { return Math.random() * 8 - 4; }
                 }
@@ -757,6 +862,7 @@ var nnlunar;
                 var activeLanders = false;
                 var tleft = _this.target.x - _this.target.width / 2;
                 var tright = _this.target.x + _this.target.width / 2;
+                var ttop = _this.target.y - _this.target.height / 2;
                 for (var i = 0, len = landers.length; i < len; i++) {
                     var l = landers[i];
                     if (l.active) {
@@ -765,12 +871,9 @@ var nnlunar;
                     var bp = l.bottom;
                     l.update();
                     if (l.active) {
-                        if (_this.landscape.checkLanderscapeCollision(l)) {
-                            l.crash(1);
-                        }
                         //check collision
-                        if (l.bottom >= _this.target.y
-                            && bp < _this.target.y
+                        if (l.bottom >= ttop
+                            && bp < ttop
                             && l.left > tleft
                             && l.right < tright) {
                             if ((Math.abs(l.rotation) <= _this.target.minAng) && (l.vel.y <= _this.target.minVel)) {
@@ -779,6 +882,9 @@ var nnlunar;
                             else {
                                 l.crash(1);
                             }
+                        }
+                        else if (_this.landscape.checkLanderscapeCollision(l)) {
+                            l.crash(1);
                         }
                         else if (l.bottom >= _this.world.floor) {
                             l.crash(1);
@@ -848,12 +954,8 @@ var nnlunar;
                 c.moveTo(_this.view.left, _this.world.floor);
                 c.lineTo(_this.view.right, _this.world.floor);
                 c.stroke();
-                c.strokeStyle = "#00FF00";
-                c.lineWidth = 5;
-                c.beginPath();
-                c.moveTo(_this.target.x - _this.target.width / 2, _this.target.y);
-                c.lineTo(_this.target.x + _this.target.width / 2, _this.target.y);
-                c.stroke();
+                c.fillStyle = c.strokeStyle = "#00FF00";
+                c.fillRect(_this.target.x - _this.target.width / 2, _this.target.y - _this.target.height / 2, _this.target.width, _this.target.height);
                 for (var i = 0, len = Math.min(_this.evoLanders.length, _this.simDisplay); i < len; i++) {
                     _this.renderer.render(_this.evoLanders[i], c, view.scale, _this.simColor);
                 }
@@ -883,6 +985,36 @@ var nnlunar;
                 _this.SCREEN_HEIGHT = _this.canvas.height = newHeight;
                 _this.updateView();
             };
+            this.onKeyDown = function (ev) {
+                console.log(ev.keyCode, nnlunar.Keys[ev.keyCode]);
+                if (ev.keyCode == nnlunar.Keys.SPACE)
+                    _this.resetBest();
+                else if (ev.keyCode == nnlunar.Keys.EQUALS)
+                    _this.updateTimeStep /= 2;
+                else if (ev.keyCode == nnlunar.Keys.DASH)
+                    _this.updateTimeStep *= 2;
+                else if (ev.keyCode == nnlunar.Keys.KEY_Q)
+                    _this.simDisplay = _this.simDisplay ? 0 : _this.evoLanders.length;
+            };
+            this.onMouseDown = function (ev) {
+                var pos = _this.getMousePos(ev);
+                var tleft = _this.target.x - _this.target.width / 2;
+                var tright = _this.target.x + _this.target.width / 2;
+                var ttop = _this.target.y - _this.target.height / 2;
+                var tbottom = _this.target.y + _this.target.height / 2;
+                if (pos.x > tleft && pos.x < tright && pos.y > ttop && pos.y < tbottom)
+                    _this.dragging = _this.target;
+            };
+            this.onMouseMove = function (ev) {
+                if (_this.dragging) {
+                    var pos = _this.getMousePos(ev);
+                    _this.dragging.x = pos.x;
+                    _this.dragging.y = pos.y;
+                }
+            };
+            this.onMouseUp = function (ev) {
+                _this.dragging = null;
+            };
             this.canvas = document.createElement('canvas');
             this.context = this.canvas.getContext('2d');
             document.body.appendChild(this.canvas);
@@ -892,6 +1024,10 @@ var nnlunar;
             this.updateView();
             window.addEventListener('resize', this.resizeGame);
             window.addEventListener('orientationchange', this.resizeGame);
+            this.canvas.addEventListener('mousedown', this.onMouseDown);
+            this.canvas.addEventListener('mousemove', this.onMouseMove);
+            this.canvas.addEventListener('mouseup', this.onMouseUp);
+            document.addEventListener('keydown', this.onKeyDown);
             this.renderer = new nnlunar.LanderRenderer();
             this.landscape = new nnlunar.Landscape();
             this.evo = new nnpoc.Neuroevolution(this.evoOptions);
@@ -916,6 +1052,8 @@ var nnlunar;
             var result = n.calculate([
                 nnpoc.lerpInv(l.pos.x, 0, this.world.width),
                 nnpoc.lerpInv(l.pos.y, 0, this.world.height),
+                nnpoc.lerpInv(this.target.x - l.pos.x, 0, this.world.width),
+                nnpoc.lerpInv(this.target.y - l.pos.y, 0, this.world.height),
                 nnpoc.lerpInv(l.rotation, -90, 90),
                 nnpoc.lerpInv(l.vel.x, -0.35, 0.35),
                 nnpoc.lerpInv(l.vel.y, -0.35, 0.35),
@@ -1004,11 +1142,14 @@ var nnlunar;
                     this.bestTime = Date.now();
                 }
                 if (this.bestLanders.length == 0 || this.bestLanders[0].crashed || Date.now() - this.bestTime > this.bestExtraTime) {
-                    this.getBest(this.evoNetworks, this.bestNetworks, this.bestDisplay);
-                    this.resetLanders(this.bestLanders, this.bestNetworks);
-                    this.bestTime = 0;
+                    this.resetBest();
                 }
             }
+        };
+        LunarGameRaw.prototype.resetBest = function () {
+            this.getBest(this.evoNetworks, this.bestNetworks, this.bestDisplay);
+            this.resetLanders(this.bestLanders, this.bestNetworks);
+            this.bestTime = 0;
         };
         LunarGameRaw.prototype.updateView = function () {
             this.view.scale = this.SCREEN_HEIGHT / this.world.height;
@@ -1018,6 +1159,14 @@ var nnlunar;
             this.view.top = -this.view.y / this.view.scale;
             this.view.right = this.view.left + (this.SCREEN_WIDTH / this.view.scale);
             this.view.bottom = this.view.top + (this.SCREEN_HEIGHT / this.view.scale);
+            this.canvasRect = this.canvas.getBoundingClientRect();
+        };
+        LunarGameRaw.prototype.getMousePos = function (ev) {
+            if (!this.canvasRect)
+                this.canvasRect = this.canvas.getBoundingClientRect();
+            var x = (ev.clientX - this.canvasRect.left - this.view.x) / this.view.scale;
+            var y = (ev.clientY - this.canvasRect.top - this.view.y) / this.view.scale;
+            return new nnlunar.Vector2(x, y);
         };
         return LunarGameRaw;
     }());

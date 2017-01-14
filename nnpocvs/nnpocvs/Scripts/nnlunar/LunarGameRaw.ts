@@ -3,22 +3,23 @@
         //world       
         discreteThurst = false;
         world = {
-            x: -350,
+            x: 0,
             y: 0,
             width: 800,
             height: 800,
             floor: 500,
         }
         start = {
-            x: -500,
-            y: -200,
+            x: -250,
+            y: -250,
             rotation: 0,
             fuel: 1000
         };
         target = {
-            x: -209,
-            y: 250,
-            width: 40,
+            x: -50,
+            y: 245,
+            width: 30,
+            height: 5,
             minVel: 0.15,
             minAng: 1
         };
@@ -33,12 +34,11 @@
             bottom: 0
         };
 
-        //display/debug        
-        simDelay = 10;
-        simSteps = 256;
-        simDisplay = 25;
+        //display/debug                
+        simDelay = 10;        
+        simDisplay = 0;
         simColor = "#7F7F7F";
-        updateTimeStep = 5;
+        updateTimeStep = 2.50;
         bestDisplay = 5;
         bestColor = "#FFFFFF";
         bestExtraTime = 3000;
@@ -65,8 +65,8 @@
             mutationRange: 0.5,
             nbChild: 2,
             network: {
-                inputs: 6,
-                hiddens: [12, 12],
+                inputs: 8,
+                hiddens: [ 8, 8 ],
                 outputs: 2,
                 randomClamped: () => { return Math.random() * 8 - 4; }
             }
@@ -76,6 +76,8 @@
             var result = n.calculate([
                 nnpoc.lerpInv(l.pos.x, 0, this.world.width),
                 nnpoc.lerpInv(l.pos.y, 0, this.world.height),
+                nnpoc.lerpInv(this.target.x - l.pos.x, 0, this.world.width),
+                nnpoc.lerpInv(this.target.y - l.pos.y, 0, this.world.height),
                 nnpoc.lerpInv(l.rotation, -90, 90),
                 nnpoc.lerpInv(l.vel.x, -0.35, 0.35),
                 nnpoc.lerpInv(l.vel.y, -0.35, 0.35),
@@ -112,6 +114,8 @@
         //state        
         SCREEN_WIDTH = window.innerWidth;
         SCREEN_HEIGHT = window.innerHeight;
+        canvasRect: ClientRect;
+        dragging: any;        
         bestTime = 0;
         lastSimTime = Date.now();
         lastRenderTime = Date.now();
@@ -151,6 +155,10 @@
             this.updateView();
             window.addEventListener('resize', this.resizeGame);
             window.addEventListener('orientationchange', this.resizeGame);
+            this.canvas.addEventListener('mousedown', this.onMouseDown);
+            this.canvas.addEventListener('mousemove', this.onMouseMove);
+            this.canvas.addEventListener('mouseup', this.onMouseUp);
+            document.addEventListener('keydown', this.onKeyDown);
 
             this.renderer = new LanderRenderer();
             this.landscape = new Landscape();
@@ -269,17 +277,22 @@
                 }
 
                 if (this.bestLanders.length == 0 || this.bestLanders[0].crashed || Date.now() - this.bestTime > this.bestExtraTime) {
-                    this.getBest(this.evoNetworks, this.bestNetworks, this.bestDisplay);
-                    this.resetLanders(this.bestLanders, this.bestNetworks);
-                    this.bestTime = 0;
+                    this.resetBest();
                 }
             }
+        }
+
+        resetBest(): void {
+            this.getBest(this.evoNetworks, this.bestNetworks, this.bestDisplay);
+            this.resetLanders(this.bestLanders, this.bestNetworks);
+            this.bestTime = 0;
         }
 
         updateLanders = (landers: Lander[], networks: nnpoc.Network[], evo: nnpoc.Neuroevolution): boolean => {
             var activeLanders = false;
             var tleft = this.target.x - this.target.width / 2;
             var tright = this.target.x + this.target.width / 2;
+            var ttop = this.target.y - this.target.height / 2;
 
             for (let i = 0, len = landers.length; i < len; i++) {
                 var l = landers[i];
@@ -292,12 +305,9 @@
                 l.update();
 
                 if (l.active) {
-                    if (this.landscape.checkLanderscapeCollision(l)) {
-                        l.crash(1);
-                    }
                     //check collision
-                    if (l.bottom >= this.target.y
-                        && bp < this.target.y
+                    if (l.bottom >= ttop
+                        && bp < ttop
                         && l.left > tleft
                         && l.right < tright) {
                         if ((Math.abs(l.rotation) <= this.target.minAng) && (l.vel.y <= this.target.minVel)) {
@@ -306,6 +316,9 @@
                         else {
                             l.crash(1);
                         }
+                    }
+                    else if (this.landscape.checkLanderscapeCollision(l)) {
+                        l.crash(1);
                     }
                     else if (l.bottom >= this.world.floor) {
                         l.crash(1);
@@ -387,12 +400,8 @@
             c.lineTo(this.view.right, this.world.floor);
             c.stroke();
 
-            c.strokeStyle = "#00FF00";
-            c.lineWidth = 5;
-            c.beginPath();
-            c.moveTo(this.target.x - this.target.width / 2, this.target.y)
-            c.lineTo(this.target.x + this.target.width / 2, this.target.y);
-            c.stroke();
+            c.fillStyle = c.strokeStyle = "#00FF00";
+            c.fillRect(this.target.x - this.target.width / 2, this.target.y - this.target.height / 2, this.target.width, this.target.height);            
 
             for (let i = 0, len = Math.min(this.evoLanders.length, this.simDisplay); i < len; i++) {
                 this.renderer.render(this.evoLanders[i], c, view.scale, this.simColor);
@@ -427,6 +436,7 @@
             this.view.top = -this.view.y / this.view.scale;
             this.view.right = this.view.left + (this.SCREEN_WIDTH / this.view.scale);
             this.view.bottom = this.view.top + (this.SCREEN_HEIGHT / this.view.scale);
+            this.canvasRect = this.canvas.getBoundingClientRect();        
         }
 
         resizeGame = (): void => {
@@ -437,6 +447,51 @@
             this.SCREEN_WIDTH = this.canvas.width = newWidth;
             this.SCREEN_HEIGHT = this.canvas.height = newHeight;
             this.updateView();
+        }
+
+        onKeyDown = (ev: KeyboardEvent): any => {
+            console.log(ev.keyCode, Keys[ev.keyCode]);
+            if (ev.keyCode == Keys.SPACE)
+                this.resetBest();
+            else if (ev.keyCode == Keys.EQUALS)
+                this.updateTimeStep /= 2;
+            else if (ev.keyCode == Keys.DASH)
+                this.updateTimeStep *= 2;
+            else if (ev.keyCode == Keys.KEY_Q)
+                this.simDisplay = this.simDisplay ? 0 : this.evoLanders.length;
+        }
+
+        onMouseDown = (ev: MouseEvent): any => {
+            var pos = this.getMousePos(ev);
+            var tleft = this.target.x - this.target.width / 2;
+            var tright = this.target.x + this.target.width / 2;
+            var ttop = this.target.y - this.target.height / 2;
+            var tbottom = this.target.y + this.target.height / 2;
+
+            if (pos.x > tleft && pos.x < tright && pos.y > ttop && pos.y < tbottom)
+                this.dragging = this.target;
+        }
+
+        onMouseMove = (ev: MouseEvent): any => {
+            if (this.dragging) {
+                var pos = this.getMousePos(ev);
+                this.dragging.x = pos.x;
+                this.dragging.y = pos.y;
+            }
+        }
+
+        onMouseUp = (ev: MouseEvent): any => {
+            this.dragging = null;
+        }
+
+        getMousePos(ev: MouseEvent): Vector2 {
+            if (!this.canvasRect)
+                this.canvasRect = this.canvas.getBoundingClientRect();
+
+            var x = (ev.clientX - this.canvasRect.left - this.view.x) / this.view.scale ;
+            var y = (ev.clientY - this.canvasRect.top - this.view.y) / this.view.scale;
+
+            return new Vector2(x, y);
         }
     }
 

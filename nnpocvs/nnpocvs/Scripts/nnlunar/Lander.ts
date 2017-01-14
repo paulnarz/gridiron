@@ -23,7 +23,7 @@
         altitude = 0;
         active = true;
         fuel = 0;
-        scale = 0.8;
+        scale = 1;
         left = 0;
         right = 0;
         bottom = 0;
@@ -39,7 +39,7 @@
             this.vel.reset(0, 0);
             this.pos.reset(0, 0);
             this.rotation = this.targetRotation = 0;
-            this.scale = 1;
+            this.scale = 0.7;
             this.thrustBuild = 0;
             this.bouncing = 0;
             this.landed = false;

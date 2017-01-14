@@ -7,7 +7,7 @@
         zoneCombis: number[][] = [];
         currentCombi: number = 0;
         zoneInfos: InfoBox[] = [];
-        landscale: number = 2.5;
+        landscale: number = 1.75;
         tileWidth: number;
         rightedge: number;
         flickerProgress = 0;
@@ -20,7 +20,7 @@
                 var p = this.points[i];
                 p.x *= this.landscale;
                 p.y *= this.landscale;
-                p.y -= 900;
+                p.y -= this.landscale * 250;
             }
             for (var i = 1; i < this.points.length; i++) {
                 var p1 = this.points[i - 1];
