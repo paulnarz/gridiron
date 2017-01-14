@@ -986,7 +986,7 @@ var nnlunar;
                 _this.updateView();
             };
             this.onKeyDown = function (ev) {
-                console.log(ev.keyCode, nnlunar.Keys[ev.keyCode]);
+                //console.log(ev.keyCode, Keys[ev.keyCode]);
                 if (ev.keyCode == nnlunar.Keys.SPACE)
                     _this.resetBest();
                 else if (ev.keyCode == nnlunar.Keys.EQUALS)

@@ -450,7 +450,7 @@
         }
 
         onKeyDown = (ev: KeyboardEvent): any => {
-            console.log(ev.keyCode, Keys[ev.keyCode]);
+            //console.log(ev.keyCode, Keys[ev.keyCode]);
             if (ev.keyCode == Keys.SPACE)
                 this.resetBest();
             else if (ev.keyCode == Keys.EQUALS)
